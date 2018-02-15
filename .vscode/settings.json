@@ -1,0 +1,9 @@
+{
+  "files.associations": {
+    "monitor.h": "c",
+    "kheap.h": "c",
+    "common.h": "c",
+    "ordered_array.h": "c",
+    "descriptor_tables.h": "c"
+  }
+}

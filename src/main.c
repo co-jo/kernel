@@ -5,20 +5,40 @@
 #include "descriptor_tables.h"
 #include "timer.h"
 #include "paging.h"
-#include "main.h"
+#include "task.h"
 
-int main(struct multiboot *mboot_ptr)
+extern u32int placement_address;
+u32int initial_esp;
+
+int main(struct multiboot *mboot_ptr, u32int initial_stack)
 {
+    initial_esp = initial_stack;
     // Initialise all the ISRs and segmentation
     init_descriptor_tables();
     // Initialise the screen (by clearing it)
     monitor_clear();
+    // Initialise the PIT to 100Hz
+    asm volatile("sti");
+    init_timer(50);
 
+
+    // Start paging.
     initialise_paging();
-    monitor_write("Hello, paging world!\n");
 
-    u32int *ptr = (u32int*)0xA0000000;
-    u32int do_page_fault = *ptr;
+    // Start multitasking.
+    initialise_tasking();
+
+    // Create a new process in a new address space which is a clone of this.
+    int ret = fork();
+    int ret_one = fork();
+    int ret_two = fork();
+    int ret_three = fork();
+    
+    monitor_write("fork() returned ");
+    monitor_write_hex(ret);
+    monitor_write(", and getpid() returned ");
+    monitor_write_hex(getpid());
+    monitor_write("\n============================================================================\n");
 
     return 0;
 }

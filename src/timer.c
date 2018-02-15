@@ -6,13 +6,12 @@
 #include "monitor.h"
 
 u32int tick = 0;
+u32int quantum = 1000;
 
 static void timer_callback(registers_t regs)
 {
     tick++;
-    monitor_write("Tick: ");
-    monitor_write_dec(tick);
-    monitor_write("\n");
+    switch_task();
 }
 
 void init_timer(u32int frequency)
