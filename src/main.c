@@ -6,6 +6,7 @@
 #include "timer.h"
 #include "paging.h"
 #include "task.h"
+#include "syscall.h"
 
 extern u32int placement_address;
 u32int initial_esp;
@@ -29,6 +30,8 @@ int main(struct multiboot *mboot_ptr, u32int initial_stack)
 
     // Create a new process in a new address space which is a clone of this.
     initialise_syscalls();
+
+    int var = fork();
 
     // switch_to_user_mode();
     //

@@ -34,12 +34,12 @@ void initialise_tasking()
 
     // Initialise the first task (kernel task)
     current_task = ready_queue = (task_t*)kmalloc(sizeof(task_t));
-    current_task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE);
     current_task->id = next_pid++;
     current_task->esp = current_task->ebp = 0;
     current_task->eip = 0;
     current_task->page_directory = current_directory;
     current_task->next = 0;
+    current_task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE);
 
     // Reenable interrupts.
     asm volatile("sti");
@@ -139,6 +139,8 @@ void switch_task()
 
     // Make sure the memory manager knows we've changed page directory.
     current_directory = current_task->page_directory;
+
+    // Change our kernel stack over.
     set_kernel_stack(current_task->kernel_stack+KERNEL_STACK_SIZE);
 
     // Here we:
@@ -174,6 +176,7 @@ int fork()
     new_task->esp = new_task->ebp = 0;
     new_task->eip = 0;
     new_task->page_directory = directory;
+    current_task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE);
     new_task->next = 0;
 
     // Add it to the end of the ready queue.
@@ -184,8 +187,6 @@ int fork()
 
     // This will be the entry point for the new process.
     u32int eip = read_eip();
-
-    current_task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE);
 
     // We could be the parent or the child here - check.
     if (current_task == parent_task)
@@ -215,6 +216,9 @@ int getpid()
 
 void switch_to_user_mode()
 {
+   // Set up our kernel stack
+   set_kernel_stack(current_task->kernel_stack+KERNEL_STACK_SIZE);
+   
    // Set up a stack structure for switching to user mode.
    asm volatile("  \
      cli; \
@@ -233,5 +237,4 @@ void switch_to_user_mode()
      iret; \
    1: \
      ");
-    set_kernel_stack(current_task->kernel_stack+KERNEL_STACK_SIZE);
 }
