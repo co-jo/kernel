@@ -206,7 +206,7 @@ page_t *get_page(u32int address, int make, page_directory_t *dir)
 }
 
 
-void page_fault(registers_t regs)
+void page_fault(registers_t *regs)
 {
     // A page fault has occurred.
     // The faulting address is stored in the CR2 register.
@@ -214,11 +214,11 @@ void page_fault(registers_t regs)
     asm volatile("mov %%cr2, %0" : "=r" (faulting_address));
 
     // The error code gives us details of what happened.
-    int present   = !(regs.err_code & 0x1); // Page not present
-    int rw = regs.err_code & 0x2;           // Write operation?
-    int us = regs.err_code & 0x4;           // Processor was in user-mode?
-    int reserved = regs.err_code & 0x8;     // Overwritten CPU-reserved bits of page entry?
-    int id = regs.err_code & 0x10;          // Caused by an instruction fetch?
+    int present   = !(regs->err_code & 0x1); // Page not present
+    int rw = regs->err_code & 0x2;           // Write operation?
+    int us = regs->err_code & 0x4;           // Processor was in user-mode?
+    int reserved = regs->err_code & 0x8;     // Overwritten CPU-reserved bits of page entry?
+    int id = regs->err_code & 0x10;          // Caused by an instruction fetch?
 
     // Output an error message.
     monitor_write("Page fault! ( ");
@@ -228,8 +228,7 @@ void page_fault(registers_t regs)
     if (reserved) {monitor_write("reserved ");}
     monitor_write(") at 0x");
     monitor_write_hex(faulting_address);
-    monitor_write(" - EIP: ");
-    monitor_write_hex(regs.eip);
+    monitor_write_hex(regs->eip);
     monitor_write("\n");
     PANIC("Page fault");
 }
