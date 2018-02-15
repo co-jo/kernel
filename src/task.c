@@ -1,4 +1,4 @@
-// 
+//
 // task.c - Implements the functionality needed to multitask.
 //          Written for JamesM's kernel development tutorials.
 //
@@ -56,7 +56,7 @@ void move_stack(void *new_stack_start, u32int size)
     // General-purpose stack is in user-mode.
     alloc_frame( get_page(i, 1, current_directory), 0 /* User mode */, 1 /* Is writable */ );
   }
-  
+
   // Flush the TLB by reading and writing the page directory address again.
   u32int pd_addr;
   asm volatile("mov %%cr3, %0" : "=r" (pd_addr));
@@ -77,7 +77,7 @@ void move_stack(void *new_stack_start, u32int size)
   memcpy((void*)new_stack_pointer, (void*)old_stack_pointer, initial_esp-old_stack_pointer);
 
   // Backtrace through the original stack, copying new values into
-  // the new stack.  
+  // the new stack.
   for(i = (u32int)new_stack_start; i > (u32int)new_stack_start-size; i -= 4)
   {
     u32int tmp = * (u32int*)i;
@@ -109,7 +109,7 @@ void switch_task()
     asm volatile("mov %%ebp, %0" : "=r"(ebp));
 
     // Read the instruction pointer. We do some cunning logic here:
-    // One of two things could have happened when this function exits - 
+    // One of two things could have happened when this function exits -
     //   (a) We called the function and it returned the EIP as requested.
     //   (b) We have just switched tasks, and because the saved EIP is essentially
     //       the instruction after read_eip(), it will seem as if read_eip has just
@@ -127,7 +127,7 @@ void switch_task()
     current_task->eip = eip;
     current_task->esp = esp;
     current_task->ebp = ebp;
-    
+
     // Get the next task to run.
     current_task = current_task->next;
     // If we fell off the end of the linked list start again at the beginning.
@@ -139,7 +139,7 @@ void switch_task()
 
     // Make sure the memory manager knows we've changed page directory.
     current_directory = current_task->page_directory;
-    set_kernel_stack(current_task->kernel_stack+KERNEL_STACK_SIZE);
+    // set_kernel_stack(current_task->kernel_stack+KERNEL_STACK_SIZE);
     // Here we:
     // * Stop interrupts so we don't get interrupted.
     // * Temporarily puts the new EIP location in ECX.
@@ -150,7 +150,7 @@ void switch_task()
     // * Restarts interrupts. The STI instruction has a delay - it doesn't take effect until after
     //   the next instruction.
     // * Jumps to the location in ECX (remember we put the new EIP in there).
-   
+
    perform_task_switch(eip, current_directory->physicalAddr, ebp, esp);
 
 }
@@ -168,7 +168,7 @@ int fork()
 
     // Create a new process.
     task_t *new_task = (task_t*)kmalloc(sizeof(task_t));
-    new_task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE);
+    // new_task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE);
     new_task->id = next_pid++;
     new_task->esp = new_task->ebp = 0;
     new_task->eip = 0;
@@ -233,4 +233,3 @@ void switch_to_user_mode()
      ");
     set_kernel_stack(current_task->kernel_stack+KERNEL_STACK_SIZE);
 }
-

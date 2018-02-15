@@ -109,14 +109,16 @@ void free_frame(page_t *page)
 
 void initialise_paging()
 {
-    // The size of physical memory. For the moment we 
+    // The size of physical memory. For the moment we
     // assume it is 16MB big.
     u32int mem_end_page = 0x1000000;
-    
+
     nframes = mem_end_page / 0x1000;
-    frames = (u32int*)kmalloc(INDEX_FROM_BIT(nframes) * sizeof(u32int));
-    memset(frames, 0, INDEX_FROM_BIT(nframes) * sizeof(u32int));
-    
+    // frames = (u32int*)kmalloc(INDEX_FROM_BIT(nframes) * sizeof(u32int));
+    // memset(frames, 0, INDEX_FROM_BIT(nframes) * sizeof(u32int));
+    frames = (u32int*)kmalloc(INDEX_FROM_BIT(nframes));
+    memset(frames, 0, INDEX_FROM_BIT(nframes));
+
     // Let's make a page directory.
     u32int phys;
     kernel_directory = (page_directory_t*)kmalloc_a(sizeof(page_directory_t));
@@ -124,12 +126,14 @@ void initialise_paging()
     kernel_directory->physicalAddr = (u32int)kernel_directory->tablesPhysical;
 
     // Map some pages in the kernel heap area.
-    // Here we call get_page but not alloc_frame. This causes page_table_t's 
+    // Here we call get_page but not alloc_frame. This causes page_table_t's
     // to be created where necessary. We can't allocate frames yet because they
     // they need to be identity mapped first below, and yet we can't increase
     // placement_address between identity mapping and enabling the heap!
     int i = 0;
-    for (i = KHEAP_START; i < KHEAP_MAX; i += 0x1000)
+    // for (i = KHEAP_START; i < KHEAP_MAX; i += 0x1000)
+    //     get_page(i, 1, kernel_directory);
+    for (i = KHEAP_START; i < KHEAP_START+KHEAP_INITIAL_SIZE; i += 0x1000)
         get_page(i, 1, kernel_directory);
 
     // We need to identity map (phys addr = virt addr) from
@@ -202,13 +206,13 @@ page_t *get_page(u32int address, int make, page_directory_t *dir)
 }
 
 
-void page_fault(registers_t *regs)
+void page_fault(registers_t regs)
 {
     // A page fault has occurred.
     // The faulting address is stored in the CR2 register.
     u32int faulting_address;
     asm volatile("mov %%cr2, %0" : "=r" (faulting_address));
-    
+
     // The error code gives us details of what happened.
     int present   = !(regs.err_code & 0x1); // Page not present
     int rw = regs.err_code & 0x2;           // Write operation?
