@@ -128,7 +128,7 @@ void switch_task()
     current_task->esp = esp;
     current_task->ebp = ebp;
 
-    // Get the next task to run.
+    // Getinitialise the next task to run.
     current_task = current_task->next;
     // If we fell off the end of the linked list start again at the beginning.
     if (!current_task) current_task = ready_queue;
@@ -139,7 +139,8 @@ void switch_task()
 
     // Make sure the memory manager knows we've changed page directory.
     current_directory = current_task->page_directory;
-    // set_kernel_stack(current_task->kernel_stack+KERNEL_STACK_SIZE);
+    set_kernel_stack(current_task->kernel_stack+KERNEL_STACK_SIZE);
+
     // Here we:
     // * Stop interrupts so we don't get interrupted.
     // * Temporarily puts the new EIP location in ECX.
@@ -168,7 +169,7 @@ int fork()
 
     // Create a new process.
     task_t *new_task = (task_t*)kmalloc(sizeof(task_t));
-    // new_task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE);
+
     new_task->id = next_pid++;
     new_task->esp = new_task->ebp = 0;
     new_task->eip = 0;
@@ -184,6 +185,7 @@ int fork()
     // This will be the entry point for the new process.
     u32int eip = read_eip();
 
+    current_task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE);
 
     // We could be the parent or the child here - check.
     if (current_task == parent_task)

@@ -21,7 +21,6 @@ int main(struct multiboot *mboot_ptr, u32int initial_stack)
     asm volatile("sti");
     init_timer(50);
 
-
     // Start paging.
     initialise_paging();
 
@@ -29,16 +28,11 @@ int main(struct multiboot *mboot_ptr, u32int initial_stack)
     initialise_tasking();
 
     // Create a new process in a new address space which is a clone of this.
-    int ret = fork();
-    int ret_one = fork();
-    int ret_two = fork();
-    int ret_three = fork();
-    
-    monitor_write("fork() returned ");
-    monitor_write_hex(ret);
-    monitor_write(", and getpid() returned ");
-    monitor_write_hex(getpid());
-    monitor_write("\n============================================================================\n");
+    initialise_syscalls();
+
+    // switch_to_user_mode();
+    //
+    // syscall_monitor_write("Hello, user world!\n");
 
     return 0;
 }
