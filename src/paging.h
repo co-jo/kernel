@@ -41,7 +41,7 @@ typedef struct page_directory
        may be in a different location in virtual memory.
     **/
     u32int physicalAddr;
-} page_directory_t;
+  } page_directory_t;
 
 /**
    Sets up the environment, page directories etc and

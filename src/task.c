@@ -36,6 +36,7 @@ void initialise_tasking()
 
     // Initialise the first task (kernel task)
     current_task = ready_queue = (task_t*)kmalloc(sizeof(task_t));
+    current_task->heap = 0;
     current_task->id = next_pid++;
     current_task->esp = current_task->ebp = 0;
     current_task->eip = 0;
@@ -277,21 +278,22 @@ void free(void *p)
 
 void *alloc(u32int size, u8int page_align)
 {
+  // check if nothing has been allocated yet
   if (!current_task->heap) {
     current_task->heap = (heap_u*)kmalloc(sizeof(heap_u));
-    monitor_write_hex(current_task->heap);
-    monitor_write("\n");
-    monitor_write_hex(current_task->heap->next);
-    monitor_write("\n");
+    current_task->heap->ptr = heap_alloc(size, page_align, gheap);
+    current_task->heap->next = 0;
+    return current_task->heap->ptr;
   }
+  // otherwise, we've already allocated at least one thing
   heap_u *heap = current_task->heap;
-  while (heap) {
+  while (heap->next) {
     heap = heap->next;
   }
-  heap = (heap_u*)kmalloc(sizeof(heap_u));
-  heap->ptr = heap_alloc(size, page_align, gheap);
-  heap->next = 0;
-  return heap->ptr;
+  heap->next = (heap_u*)kmalloc(sizeof(heap_u));
+  heap->next->ptr = heap_alloc(size, page_align, gheap);
+  heap->next->next = 0;
+  return heap->next->ptr;
 }
 
 void print_user_heap()

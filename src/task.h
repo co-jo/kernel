@@ -53,4 +53,6 @@ void free(void *p);
 
 void *alloc(u32int size, u8int page_align);
 
+void print_user_heap();
+
 #endif

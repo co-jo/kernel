@@ -36,20 +36,18 @@ int main(struct multiboot *mboot_ptr, u32int initial_stack)
 
     // switch_to_user_mode();
 
-    void *ptr = alloc(4, 0);
-    void *ptr_1 = alloc(4, 0);
+    print_user_heap();
 
-    monitor_write_hex(ptr);
-    monitor_write("\n");
-    monitor_write_hex(ptr_1);
-    monitor_write("\n");
+    void *ptr = alloc(4, 0);
+    
+    print_user_heap();
+    
+    void *ptr_1 = alloc(4, 0);
 
     print_user_heap();
 
     free(ptr);
     void *ptr_2 = alloc(4,0);
-    monitor_write_hex(ptr_2);
-    monitor_write("\n");
     
     print_user_heap();
     // syscall_monitor_write("Hello, user world!\n");
