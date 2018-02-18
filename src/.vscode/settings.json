@@ -1,6 +1,9 @@
 {
   "files.associations": {
     "fs.h": "c",
-    "kheap.h": "c"
+    "kheap.h": "c",
+    "paging.h": "c",
+    "task.h": "c",
+    "isr.h": "c"
   }
 }

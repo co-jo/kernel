@@ -11,6 +11,7 @@ u32int quantum = 1000;
 static void timer_callback(registers_t regs)
 {
     tick++;
+    // if tick >= quantum {switch_task()}
     switch_task();
 }
 

@@ -1,5 +1,5 @@
 // kheap.h -- Interface for kernel heap functions, also provides
-//            a placement malloc() for use before the heap is 
+//            a placement malloc() for use before the heap is
 //            initialised.
 //            Written for JamesM's kernel development tutorials.
 
@@ -11,12 +11,15 @@
 
 #define KHEAP_START         0xC0000000
 #define KHEAP_INITIAL_SIZE  0x100000
-#define KHEAP_MAX           0xFFFF000
+#define KHEAP_MAX           0xCFFFF000
 
 #define HEAP_INDEX_SIZE   0x20000
 #define HEAP_MAGIC        0x123890AB
 #define HEAP_MIN_SIZE     0x70000
 
+#define GHEAP_START         0x01000000
+#define GHEAP_INITIAL_SIZE  0x200000
+#define GHEAP_MAX           0xBFFF0000
 /**
    Size information for a hole/block
 **/
@@ -52,12 +55,12 @@ heap_t *create_heap(u32int start, u32int end, u32int max, u8int supervisor, u8in
    Allocates a contiguous region of memory 'size' in size. If page_align==1, it creates that block starting
    on a page boundary.
 **/
-void *alloc(u32int size, u8int page_align, heap_t *heap);
+void *heap_alloc(u32int size, u8int page_align, heap_t *heap);
 
 /**
    Releases a block allocated with 'alloc'.
 **/
-void free(void *p, heap_t *heap);
+void heap_free(void *p, heap_t *heap);
 
 /**
    Allocate a chunk of memory, sz in size. If align == 1,
@@ -83,7 +86,7 @@ u32int kmalloc_a(u32int sz);
 u32int kmalloc_p(u32int sz, u32int *phys);
 
 /**
-   Allocate a chunk of memory, sz in size. The physical address 
+   Allocate a chunk of memory, sz in size. The physical address
    is returned in phys. It must be page-aligned.
 **/
 u32int kmalloc_ap(u32int sz, u32int *phys);

@@ -5,6 +5,7 @@
 
 #include "task.h"
 #include "paging.h"
+#include "kheap.h"
 
 // The currently running task.
 volatile task_t *current_task;
@@ -18,6 +19,7 @@ extern page_directory_t *current_directory;
 extern void alloc_frame(page_t*,int,int);
 extern u32int initial_esp;
 extern u32int read_eip();
+extern heap_t *gheap;
 
 extern void perform_task_switch(u32int, u32int, u32int, u32int);
 
@@ -68,6 +70,9 @@ void move_stack(void *new_stack_start, u32int size)
 
   // Offset to add to old stack addresses to get a new stack address.
   u32int offset            = (u32int)new_stack_start - initial_esp;
+  // monitor_write("\n");
+  // least significant byte = 54;
+  // monitor_write_hex(offset + old_stack_pointer);
 
   // New ESP and EBP.
   u32int new_stack_pointer = old_stack_pointer + offset;
@@ -218,7 +223,7 @@ void switch_to_user_mode()
 {
    // Set up our kernel stack
    set_kernel_stack(current_task->kernel_stack+KERNEL_STACK_SIZE);
-   
+
    // Set up a stack structure for switching to user mode.
    asm volatile("  \
      cli; \
@@ -238,3 +243,78 @@ void switch_to_user_mode()
    1: \
      ");
 }
+
+void free(void *p)
+{
+  monitor_write("Freeing ptr:");
+  monitor_write_hex(p);
+  monitor_write("\n");
+  if (p == 0) {
+    return;
+  }
+  heap_u *heap = current_task->heap;
+  // check edge case where the pointer is in the first node
+  if (heap->ptr == p) {
+    heap_free(p, gheap);
+    current_task->heap = current_task->heap->next;
+    kfree(heap);
+    return;
+  }
+  // continue on, knowing we have at least one node
+  heap_u *prev = heap;
+  heap = heap->next;
+  while (heap) {
+    if (heap->ptr == p) {
+      heap_free(p, gheap);
+      prev->next = heap->next;
+      kfree(heap);
+      return;
+    }
+  }
+  // didn't find the pointer in our task's "heap", silently fail
+  return;
+}
+
+void *alloc(u32int size, u8int page_align)
+{
+  if (!current_task->heap) {
+    current_task->heap = (heap_u*)kmalloc(sizeof(heap_u));
+    monitor_write_hex(current_task->heap);
+    monitor_write("\n");
+    monitor_write_hex(current_task->heap->next);
+    monitor_write("\n");
+  }
+  heap_u *heap = current_task->heap;
+  while (heap) {
+    heap = heap->next;
+  }
+  heap = (heap_u*)kmalloc(sizeof(heap_u));
+  heap->ptr = heap_alloc(size, page_align, gheap);
+  heap->next = 0;
+  return heap->ptr;
+}
+
+void print_user_heap()
+{
+  heap_u *heap = current_task->heap;
+  while (heap) {
+    monitor_write("Heap: ");
+    monitor_write_hex(heap);
+    monitor_write("   Heap ptr: ");
+    monitor_write_hex(heap->ptr);
+    monitor_write("\n");
+    heap = heap->next;
+  }
+  return;
+}
+
+// void heap_free(void *p)
+// {
+//   heap_u heap = current_task->heap;
+//   while (heap) {
+//     if (heap->ptr == p) {
+//       heap_free(p, gheap);
+//     }
+//     heap = heap->next;
+//   }
+// }

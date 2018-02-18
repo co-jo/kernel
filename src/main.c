@@ -13,6 +13,9 @@ u32int initial_esp;
 
 int main(struct multiboot *mboot_ptr, u32int initial_stack)
 {
+    monitor_write_hex(placement_address);
+
+    monitor_write("\n");
     initial_esp = initial_stack;
     // Initialise all the ISRs and segmentation
     init_descriptor_tables();
@@ -31,10 +34,24 @@ int main(struct multiboot *mboot_ptr, u32int initial_stack)
     // Create a new process in a new address space which is a clone of this.
     initialise_syscalls();
 
-    int var = fork();
-
     // switch_to_user_mode();
-    //
+
+    void *ptr = alloc(4, 0);
+    void *ptr_1 = alloc(4, 0);
+
+    monitor_write_hex(ptr);
+    monitor_write("\n");
+    monitor_write_hex(ptr_1);
+    monitor_write("\n");
+
+    print_user_heap();
+
+    free(ptr);
+    void *ptr_2 = alloc(4,0);
+    monitor_write_hex(ptr_2);
+    monitor_write("\n");
+    
+    print_user_heap();
     // syscall_monitor_write("Hello, user world!\n");
 
     return 0;

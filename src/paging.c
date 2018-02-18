@@ -3,6 +3,7 @@
 
 #include "paging.h"
 #include "kheap.h"
+#include "monitor.h"
 
 // The kernel's page directory
 page_directory_t *kernel_directory=0;
@@ -17,10 +18,12 @@ u32int nframes;
 // Defined in kheap.c
 extern u32int placement_address;
 extern heap_t *kheap;
+extern heap_t *gheap;
 
 // Macros used in the bitset algorithms.
 #define INDEX_FROM_BIT(a) (a/(8*4))
 #define OFFSET_FROM_BIT(a) (a%(8*4))
+u32int frames_allocated;
 
 // Static function to set a bit in the frames bitset
 static void set_frame(u32int frame_addr)
@@ -52,6 +55,7 @@ static u32int test_frame(u32int frame_addr)
 // Static function to find the first free frame.
 static u32int first_frame()
 {
+    frames_allocated++;
     u32int i, j;
     for (i = 0; i < INDEX_FROM_BIT(nframes); i++)
     {
@@ -114,10 +118,10 @@ void initialise_paging()
     u32int mem_end_page = 0x1000000;
 
     nframes = mem_end_page / 0x1000;
-    // frames = (u32int*)kmalloc(INDEX_FROM_BIT(nframes) * sizeof(u32int));
-    // memset(frames, 0, INDEX_FROM_BIT(nframes) * sizeof(u32int));
-    frames = (u32int*)kmalloc(INDEX_FROM_BIT(nframes));
-    memset(frames, 0, INDEX_FROM_BIT(nframes));
+    frames = (u32int*)kmalloc(INDEX_FROM_BIT(nframes) * sizeof(u32int));
+    memset(frames, 0, INDEX_FROM_BIT(nframes) * sizeof(u32int));
+    // frames = (u32int*)kmalloc(INDEX_FROM_BIT(nframes));
+    // memset(frames, 0, INDEX_FROM_BIT(nframes));
 
     // Let's make a page directory.
     u32int phys;
@@ -131,9 +135,14 @@ void initialise_paging()
     // they need to be identity mapped first below, and yet we can't increase
     // placement_address between identity mapping and enabling the heap!
     int i = 0;
-    // for (i = KHEAP_START; i < KHEAP_MAX; i += 0x1000)
+
+    // Sets up table via placement_address (Physical and virtual)
+    for (i = KHEAP_START; i < KHEAP_MAX; i += 0x1000)
+        get_page(i, 1, kernel_directory);
+    // for (i = KHEAP_START; i < KHEAP_START+KHEAP_INITIAL_SIZE; i += 0x1000)
     //     get_page(i, 1, kernel_directory);
-    for (i = KHEAP_START; i < KHEAP_START+KHEAP_INITIAL_SIZE; i += 0x1000)
+
+    for (i = GHEAP_START; i < GHEAP_MAX; i += 0x1000)
         get_page(i, 1, kernel_directory);
 
     // We need to identity map (phys addr = virt addr) from
@@ -145,7 +154,9 @@ void initialise_paging()
     // computed on-the-fly rather than once at the start.
     // Allocate a lil' bit extra so the kernel heap can be
     // initialised properly.
-    i = 0;
+    i = 0;;
+
+    // Maps a frame to the page for each page defined a
     while (i < placement_address+0x1000)
     {
         // Kernel code is readable but not writeable from userspace.
@@ -153,9 +164,12 @@ void initialise_paging()
         i += 0x1000;
     }
 
-    // Now allocate those pages we mapped earlier.
+    // Now allocate thoise pages we mapped earlier.
     for (i = KHEAP_START; i < KHEAP_START+KHEAP_INITIAL_SIZE; i += 0x1000)
         alloc_frame( get_page(i, 1, kernel_directory), 0, 0);
+
+    for (i = GHEAP_START; i < GHEAP_START+GHEAP_INITIAL_SIZE; i += 0x1000)
+       alloc_frame(get_page(i, 1, kernel_directory), 0, 1);
 
     // Before we enable paging, we must register our page fault handler.
     register_interrupt_handler(14, page_fault);
@@ -163,8 +177,11 @@ void initialise_paging()
     // Now, enable paging!
     switch_page_directory(kernel_directory);
 
+
     // Initialise the kernel heap.
     kheap = create_heap(KHEAP_START, KHEAP_START+KHEAP_INITIAL_SIZE, 0xCFFFF000, 0, 0);
+    // Initialise global heap
+    gheap = create_heap(GHEAP_START, GHEAP_START+GHEAP_INITIAL_SIZE, GHEAP_MAX, 0, 0);
 
     current_directory = clone_directory(kernel_directory);
     switch_page_directory(current_directory);
@@ -182,6 +199,8 @@ void switch_page_directory(page_directory_t *dir)
 
 page_t *get_page(u32int address, int make, page_directory_t *dir)
 {
+    // monitor_write_hex(address);
+    // monitor_write("\n");
     // Turn the address into an index.
     address /= 0x1000;
     // Find the page table containing this address.
@@ -194,6 +213,8 @@ page_t *get_page(u32int address, int make, page_directory_t *dir)
     else if(make)
     {
         u32int tmp;
+        // monitor_write_hex(tmp);
+        // monitor_write("\n");
         dir->tables[table_idx] = (page_table_t*)kmalloc_ap(sizeof(page_table_t), &tmp);
         memset(dir->tables[table_idx], 0, 0x1000);
         dir->tablesPhysical[table_idx] = tmp | 0x7; // PRESENT, RW, US.
@@ -226,9 +247,8 @@ void page_fault(registers_t *regs)
     if (rw) {monitor_write("read-only ");}
     if (us) {monitor_write("user-mode ");}
     if (reserved) {monitor_write("reserved ");}
-    monitor_write(") at 0x");
+    monitor_write(") at ");
     monitor_write_hex(faulting_address);
-    monitor_write_hex(regs->eip);
     monitor_write("\n");
     PANIC("Page fault");
 }
@@ -298,4 +318,67 @@ page_directory_t *clone_directory(page_directory_t *src)
         }
     }
     return dir;
+}
+
+void print_table() {
+    u32int min = 2147483647;
+    u32int max = 0;
+    int i = 0;
+    for ( ; i < 1024; i++) {
+        page_table_t *table = current_directory->tables[i];
+        int j = 0;
+        for ( ; j < 1024; j++) {
+            page_t page = table->pages[j];
+            if (page.frame > max)
+                max = page.frame;
+            if (page.frame < min)
+                min = page.frame;
+        }
+
+        // if (table != 0) {
+        //     monitor_write_dec(table);
+        //     monitor_write("\n");
+        // }
+    }
+
+    monitor_write("min: ");
+    monitor_write_hex(min);
+    monitor_write("\n");
+    monitor_write("max:");
+    monitor_write_hex(max);
+    monitor_write("\n");
+    monitor_write("frames_allocated:");
+    monitor_write_dec(frames_allocated);
+
+    monitor_write("\n");
+
+    // min = 2147483647;
+    // max = 0;
+    // i = 0;
+    // for ( ; i < 1024; i++) {
+    //     page_table_t *table = kernel_directory->tables[i];
+    //     int j = 0;
+    //     for ( ; j < 1024; j++) {
+    //         page_t page = table->pages[j];
+    //         if (page.frame > max)
+    //             max = page.frame;
+    //         if (page.frame < min)
+    //             min = page.frame;
+    //     }
+
+    //     // if (table != 0) {
+    //     //     monitor_write_dec(table);
+    //     //     monitor_write("\n");
+    //     // }
+    // }
+
+    // monitor_write("min: ");
+    // monitor_write_dec(min);
+    // monitor_write("\n");
+    // monitor_write("max:");
+    // monitor_write_dec(max);
+    // monitor_write("\n");
+    // monitor_write("frames_allocated:");
+    // monitor_write_dec(frames_allocated);;
+
 }

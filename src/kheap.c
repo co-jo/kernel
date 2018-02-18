@@ -1,22 +1,28 @@
 // kheap.c -- Kernel heap functions, also provides
-//            a placement malloc() for use before the heap is 
+//            a placement malloc() for use before the heap is
 //            initialised.
 //            Written for JamesM's kernel development tutorials.
 
 #include "kheap.h"
 #include "paging.h"
+#include "monitor.h"
 
 // end is defined in the linker script.
 extern u32int end;
 u32int placement_address = (u32int)&end;
 extern page_directory_t *kernel_directory;
 heap_t *kheap=0;
+heap_t *gheap=0;
+u32int first = 1;
 
 u32int kmalloc_int(u32int sz, int align, u32int *phys)
 {
+    // monitor_write_dec(sz);
+    // monitor_write("\n");
+
     if (kheap != 0)
     {
-        void *addr = alloc(sz, (u8int)align, kheap);
+        void *addr = heap_alloc(sz, (u8int)align, kheap);
         if (phys != 0)
         {
             page_t *page = get_page((u32int)addr, 0, kernel_directory);
@@ -44,7 +50,7 @@ u32int kmalloc_int(u32int sz, int align, u32int *phys)
 
 void kfree(void *p)
 {
-    free(p, kheap);
+    heap_free(p, kheap);
 }
 
 u32int kmalloc_a(u32int sz)
@@ -166,10 +172,10 @@ heap_t *create_heap(u32int start, u32int end_addr, u32int max, u8int supervisor,
     // All our assumptions are made on startAddress and endAddress being page-aligned.
     ASSERT(start%0x1000 == 0);
     ASSERT(end_addr%0x1000 == 0);
-    
+
     // Initialise the index.
     heap->index = place_ordered_array( (void*)start, HEAP_INDEX_SIZE, &header_t_less_than);
-    
+
     // Shift the start address forward to resemble where we can start putting data.
     start += sizeof(type_t)*HEAP_INDEX_SIZE;
 
@@ -191,16 +197,20 @@ heap_t *create_heap(u32int start, u32int end_addr, u32int max, u8int supervisor,
     hole->size = end_addr-start;
     hole->magic = HEAP_MAGIC;
     hole->is_hole = 1;
-    insert_ordered_array((void*)hole, &heap->index);     
+    insert_ordered_array((void*)hole, &heap->index);
 
     return heap;
 }
 
-void *alloc(u32int size, u8int page_align, heap_t *heap)
+void *heap_alloc(u32int size, u8int page_align, heap_t *heap)
 {
 
     // Make sure we take the size of header/footer into account.
     u32int new_size = size + sizeof(header_t) + sizeof(footer_t);
+    // monitor_write("new_szie \n");
+    // monitor_write_dec(new_size);
+    // monitor_write("\n");
+
     // Find the smallest hole that will fit.
     s32int iterator = find_smallest_hole(new_size, page_align, heap);
 
@@ -252,7 +262,7 @@ void *alloc(u32int size, u8int page_align, heap_t *heap)
             footer->magic = HEAP_MAGIC;
         }
         // We now have enough space. Recurse, and call the function again.
-        return alloc(size, page_align, heap);
+        return heap_alloc(size, page_align, heap);
     }
 
     header_t *orig_hole_header = (header_t *)lookup_ordered_array(iterator, &heap->index);
@@ -314,12 +324,12 @@ void *alloc(u32int size, u8int page_align, heap_t *heap)
         // Put the new hole in the index;
         insert_ordered_array((void*)hole_header, &heap->index);
     }
-    
+
     // ...And we're done!
     return (void *) ( (u32int)block_header+sizeof(header_t) );
 }
 
-void free(void *p, heap_t *heap)
+void heap_free(void *p, heap_t *heap)
 {
     // Exit gracefully for null pointers.
     if (p == 0)

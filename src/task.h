@@ -1,4 +1,4 @@
-// 
+//
 // task.h - Defines the structures and prototypes needed to multitask.
 //          Written for JamesM's kernel development tutorials.
 //
@@ -11,12 +11,20 @@
 
 #define KERNEL_STACK_SIZE 2048
 
+typedef struct heap_u
+{
+  void *ptr;
+  struct heap_u *next;
+} heap_u;
+
 // This structure defines a 'task' - a process.
 typedef struct task
 {
     int id;                // Process ID.
     u32int esp, ebp;       // Stack and base pointers.
     u32int eip;            // Instruction pointer.
+    u32int priority;
+    heap_u *heap;
     page_directory_t *page_directory; // Page directory.
     u32int kernel_stack;
     struct task *next;     // The next task in a linked list.
@@ -40,5 +48,9 @@ int getpid();
 
 // Switch to user mode
 void switch_to_user_mode();
+
+void free(void *p);
+
+void *alloc(u32int size, u8int page_align);
 
 #endif
