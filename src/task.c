@@ -271,6 +271,8 @@ void free(void *p)
       kfree(heap);
       return;
     }
+    heap = heap->next;
+    prev = prev->next;
   }
   // didn't find the pointer in our task's "heap", silently fail
   return;
