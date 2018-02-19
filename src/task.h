@@ -11,6 +11,7 @@
 
 #define KERNEL_STACK_SIZE 2048
 
+// wrapper around heap_t for tasks
 typedef struct heap_u
 {
   void *ptr;
@@ -24,10 +25,15 @@ typedef struct task
     u32int esp, ebp;       // Stack and base pointers.
     u32int eip;            // Instruction pointer.
     u32int priority;
+    u32int time_spent;     // time quantums spent using the CPU
     heap_u *heap;
     page_directory_t *page_directory; // Page directory.
     u32int kernel_stack;
-    struct task *next;     // The next task in a linked list.
+    struct task *parent;              // Who forked this task?
+    struct task *next_sibling;        // The siblings of this task
+    struct task *first_child;         // The first child
+    struct task *next;     // The next task in the ready queue
+    struct task *prev;     // The previous task in the ready queue
 } task_t;
 
 // Initialises the tasking system.
@@ -49,10 +55,13 @@ int getpid();
 // Switch to user mode
 void switch_to_user_mode();
 
+// free memory allocated by this task
 void free(void *p);
 
+// allocate memory for use by this task
 void *alloc(u32int size, u8int page_align);
 
+// print current contents of the task heap
 void print_user_heap();
 
 #endif

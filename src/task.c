@@ -40,9 +40,16 @@ void initialise_tasking()
     current_task->id = next_pid++;
     current_task->esp = current_task->ebp = 0;
     current_task->eip = 0;
+    current_task->time_spent = 0;
+    current_task->priority = 4;
     current_task->page_directory = current_directory;
-    current_task->next = 0;
     current_task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE);
+
+    current_task->parent = 0;
+    current_task->next_sibling = 0;
+    current_task->first_child = 0;
+    current_task->next = 0;
+    current_task->prev = 0;
 
     // Reenable interrupts.
     asm volatile("sti");
@@ -103,6 +110,66 @@ void move_stack(void *new_stack_start, u32int size)
   asm volatile("mov %0, %%ebp" : : "r" (new_base_pointer));
 }
 
+// grab the next task in the priority queue and change priorities
+void reprioritize()
+{
+    // monitor_write("Reprioritizing...\n");
+    // print_ready_queue();
+
+    // 1 is the 'highest' priority, 10 is the 'lowest'
+    // meaning a greater priority value is actually lower priority :)
+    current_task = ready_queue;
+    // return immediately if the ready queue only has one task
+    if (!ready_queue->next) {
+        return;
+    }
+
+    task_t *first_task = (task_t*)ready_queue;
+    task_t *tmp_task = (task_t*)ready_queue;
+
+    // first, check if the first task is priority 10
+    // in this case, all tasks have decayed to the lowest priority, so we
+    // switch to a round-robin scheduling
+    if (first_task->priority == 10) {
+        ready_queue = ready_queue->next;
+        ready_queue->prev = 0;
+        while (tmp_task->next)
+            tmp_task = tmp_task->next;
+        tmp_task->next = first_task;
+        first_task->prev = tmp_task;
+        first_task->next = 0;
+        return;
+    }
+
+    // 
+    first_task->priority++;
+    if (first_task->priority > first_task->next->priority) {
+        ready_queue = ready_queue->next;
+        ready_queue->prev = 0;
+        tmp_task = tmp_task->next;
+        // while tmp_task still has a higher priority than first_task
+        while (first_task->priority > tmp_task->priority) {
+            if (tmp_task->next) 
+                tmp_task = tmp_task->next;
+            else
+                break;
+        }
+        if (tmp_task->next) {
+            // tmp_task now has a lesser or equal priority to first_task
+            tmp_task->prev->next = first_task;
+            first_task->prev = tmp_task->prev;
+            first_task->next = tmp_task;
+            tmp_task->prev = first_task;
+            return;
+        } else {
+            tmp_task->next = first_task;
+            first_task->prev = tmp_task;
+            first_task->next = 0;
+            return;
+        }
+    }
+}
+
 void switch_task()
 {
     // If we haven't initialised tasking yet, just return.
@@ -134,15 +201,18 @@ void switch_task()
     current_task->esp = esp;
     current_task->ebp = ebp;
 
-    // Getinitialise the next task to run.
-    current_task = current_task->next;
+    // Get the next task to run.
+    reprioritize();
+    // current_task = current_task->next;
+
     // If we fell off the end of the linked list start again at the beginning.
-    if (!current_task) current_task = ready_queue;
+    // !!!! won't happen with current implementation
+    // if (!current_task) current_task = ready_queue;
 
     eip = current_task->eip;
     esp = current_task->esp;
     ebp = current_task->ebp;
-
+    
     // Make sure the memory manager knows we've changed page directory.
     current_directory = current_task->page_directory;
 
@@ -181,15 +251,30 @@ int fork()
     new_task->id = next_pid++;
     new_task->esp = new_task->ebp = 0;
     new_task->eip = 0;
+    new_task->priority = 4;
+    new_task->time_spent = 0;
     new_task->page_directory = directory;
     current_task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE);
+    new_task->parent = parent_task;
+    new_task->first_child = 0;
     new_task->next = 0;
+
+    // Add it to the end of the linked list of children tasks
+    task_t *child = parent_task->first_child;
+    if (!child) {
+        parent_task->first_child = new_task;
+    } else {
+        while (child->next_sibling)
+            child = child->next_sibling;
+        child->next_sibling = new_task;
+    }   
 
     // Add it to the end of the ready queue.
     task_t *tmp_task = (task_t*)ready_queue;
     while (tmp_task->next)
         tmp_task = tmp_task->next;
     tmp_task->next = new_task;
+    new_task->prev = tmp_task;
 
     // This will be the entry point for the new process.
     u32int eip = read_eip();
@@ -247,9 +332,6 @@ void switch_to_user_mode()
 
 void free(void *p)
 {
-  monitor_write("Freeing ptr:");
-  monitor_write_hex(p);
-  monitor_write("\n");
   if (p == 0) {
     return;
   }
@@ -310,6 +392,17 @@ void print_user_heap()
     heap = heap->next;
   }
   return;
+}
+
+void print_ready_queue()
+{
+    task_t *task = (task_t*)ready_queue;
+    while (task) {
+        monitor_write("Task ID: ");
+        monitor_write_dec(task->id);
+        monitor_write("\n");
+        task = task->next;
+    }
 }
 
 // void heap_free(void *p)

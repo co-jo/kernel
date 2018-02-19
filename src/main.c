@@ -36,24 +36,39 @@ int main(struct multiboot *mboot_ptr, u32int initial_stack)
 
     // switch_to_user_mode();
 
-    void *a, *b, *c, *d;
-    a = alloc(20, 1);
-    b = alloc(10, 0);
-    c = alloc(35, 1);
-    d = alloc(100, 0);
-
-    print_user_heap();
+    int pid = fork();
     
-    free(c);
-    print_user_heap();
-
-    free(a);
-    free(d);
-    print_user_heap();
-
-    free(b);
-    print_user_heap();
-
+    if (pid == 0) {
+        monitor_write("In child 1\n");
+        int i = 0;
+        int j = 0;
+        for (i = 0; i < 100000000; i++) {
+            j++;
+        }
+        monitor_write_dec(j);
+        monitor_write("\n");
+    } else {
+        int pid2 = fork();
+        if (pid2 == 0) {
+            monitor_write("In child 2\n");
+            int i = 0;
+            int j = 30;
+            for (i = 0; i < 100000000; i++) {
+                j++;
+            }
+            monitor_write_dec(j);
+            monitor_write("\n");
+        } else {
+            monitor_write("In parent\n");
+            int i = 0;
+            int j = 50;
+            for (i = 0; i < 100000000; i++) {
+                j++;
+            }
+            monitor_write_dec(j);
+            monitor_write("\n");
+        }
+    }
     // syscall_monitor_write("Hello, user world!\n");
 
     return 0;
