@@ -64,4 +64,8 @@ void *alloc(u32int size, u8int page_align);
 // print current contents of the task heap
 void print_user_heap();
 
+// grabs task at front of list, then updates the next task.
+// add support for preemption via interrupt?
+void reprioritize();
+
 #endif

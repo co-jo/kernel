@@ -13,9 +13,6 @@ u32int initial_esp;
 
 int main(struct multiboot *mboot_ptr, u32int initial_stack)
 {
-    monitor_write_hex(placement_address);
-
-    monitor_write("\n");
     initial_esp = initial_stack;
     // Initialise all the ISRs and segmentation
     init_descriptor_tables();
@@ -34,42 +31,32 @@ int main(struct multiboot *mboot_ptr, u32int initial_stack)
     // Create a new process in a new address space which is a clone of this.
     initialise_syscalls();
 
-    // switch_to_user_mode();
+    // int process = fork();
 
-    int pid = fork();
-    
-    if (pid == 0) {
-        monitor_write("In child 1\n");
-        int i = 0;
-        int j = 0;
-        for (i = 0; i < 100000000; i++) {
-            j++;
-        }
-        monitor_write_dec(j);
-        monitor_write("\n");
+    // if (process == 2) {
+    //     monitor_write("PID == 1\n");
+    // } else if (process == 0) {
+    //     monitor_write("PID == 0\n");
+    // }
+
+    // monitor_write("Process: ");
+    // monitor_write_hex(process);
+    // monitor_write("\n");
+
+    switch_to_user_mode();
+
+    int process = syscall_fork();
+
+    syscall_monitor_write("\nProcess: ");
+    syscall_monitor_write_hex(process);
+    syscall_monitor_write("\n");
+
+    if (process == 2) {
+        // syscall_monitor_write("\n PID == 2");
+
     } else {
-        int pid2 = fork();
-        if (pid2 == 0) {
-            monitor_write("In child 2\n");
-            int i = 0;
-            int j = 30;
-            for (i = 0; i < 100000000; i++) {
-                j++;
-            }
-            monitor_write_dec(j);
-            monitor_write("\n");
-        } else {
-            monitor_write("In parent\n");
-            int i = 0;
-            int j = 50;
-            for (i = 0; i < 100000000; i++) {
-                j++;
-            }
-            monitor_write_dec(j);
-            monitor_write("\n");
-        }
+        // syscall_monitor_write("\n PID == 0");
     }
-    // syscall_monitor_write("Hello, user world!\n");
 
     return 0;
 }

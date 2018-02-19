@@ -8,21 +8,26 @@
 
 static void syscall_handler(registers_t *regs);
 
+// Monitor
 DEFN_SYSCALL1(monitor_write, 0, const char*);
 DEFN_SYSCALL1(monitor_write_hex, 1, const char*);
 DEFN_SYSCALL1(monitor_write_dec, 2, const char*);
+// Memory
 DEFN_SYSCALL2(alloc, 3, const u32int, const u8int);
 DEFN_SYSCALL1(free, 4, const void*);
+// Process
+DEFN_SYSCALL0(fork, 5);
 
-static void *syscalls[5] =
+static void *syscalls[6] =
 {
     &monitor_write,
     &monitor_write_hex,
     &monitor_write_dec,
     &alloc,
-    &free
+    &free,
+    &fork
 };
-u32int num_syscalls = 5;
+u32int num_syscalls = 6;
 
 void initialise_syscalls()
 {

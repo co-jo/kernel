@@ -42,9 +42,11 @@ void initialise_tasking()
     current_task->eip = 0;
     current_task->time_spent = 0;
     current_task->priority = 4;
+
     current_task->page_directory = current_directory;
     current_task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE);
-
+    monitor_write("first_kstack: \n");
+    monitor_write_hex(current_task->kernel_stack);
     current_task->parent = 0;
     current_task->next_sibling = 0;
     current_task->first_child = 0;
@@ -170,8 +172,24 @@ void reprioritize()
     }
 }
 
+heap_u *clone_heap(heap_u *heap)
+{   
+    if (!heap) return;
+    heap_u *new_heap = (heap_u*)kmalloc(sizeof(heap_u));
+    memset(new_heap, 0, sizeof(heap_u));
+
+    while(heap) {
+        // alloc to heap -> returns addr
+        new_heap->ptr = heap->ptr;
+        new_heap->next = heap->next;
+        heap = heap -> next;
+    }
+}
+
 void switch_task()
-{
+{    
+
+    // monitor_write("\n====== enter_switch ======\n");
     // If we haven't initialised tasking yet, just return.
     if (!current_task)
         return;
@@ -190,12 +208,22 @@ void switch_task()
     // In the second case we need to return immediately. To detect it we put a dummy
     // value in EAX further down at the end of this function. As C returns values in EAX,
     // it will look like the return value is this dummy value! (0x12345).
+    
+    // monitor_write("pre_eip: ");
+    // monitor_write_hex(current_task->eip);
+    // monitor_write("\n");
     eip = read_eip();
-
+    // monitor_write("\n eip: "); monitor_write_hex(eip);
+    
+    // monitor_write("post_eip: ");
+    // monitor_write_hex(eip);
+    // monitor_write("\n");
     // Have we just switched tasks?
     if (eip == 0x12345)
         return;
 
+    // monitor_write("\n current_pid: ");
+    // monitor_write_hex(current_task->id);
     // No, we didn't switch tasks. Let's save some register values and switch.
     current_task->eip = eip;
     current_task->esp = esp;
@@ -217,6 +245,14 @@ void switch_task()
     current_directory = current_task->page_directory;
 
     // Change our kernel stack over.
+
+
+    monitor_write("\n==== current_kstack: ===== \n");
+    monitor_write("pid: ");
+    monitor_write_hex(current_task->id);
+    monitor_write("\n");
+
+    monitor_write_hex(current_task->kernel_stack);
     set_kernel_stack(current_task->kernel_stack+KERNEL_STACK_SIZE);
 
     // Here we:
@@ -229,9 +265,15 @@ void switch_task()
     // * Restarts interrupts. The STI instruction has a delay - it doesn't take effect until after
     //   the next instruction.
     // * Jumps to the location in ECX (remember we put the new EIP in there).
+    // monitor_write("task_switch_eip - "); monitor_write_hex(eip);
+    // monitor_write("\n");
+    
+    // monitor_write("\neip - :");
+    // monitor_write_hex(eip);
 
-   perform_task_switch(eip, current_directory->physicalAddr, ebp, esp);
+    perform_task_switch(eip, current_directory->physicalAddr, ebp, esp);
 
+   // ANYTHING BELOW NEVER GETS CALLED
 }
 
 int fork()
@@ -244,6 +286,8 @@ int fork()
 
     // Clone the address space.
     page_directory_t *directory = clone_directory(current_directory);
+    // Clone the user heap
+    // heap_u *heap = clone_heap(parent_task->heap);
 
     // Create a new process.
     task_t *new_task = (task_t*)kmalloc(sizeof(task_t));
@@ -254,7 +298,12 @@ int fork()
     new_task->priority = 4;
     new_task->time_spent = 0;
     new_task->page_directory = directory;
+    // new_task->heap = heap;
+    // ?
     current_task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE);
+    monitor_write("\nnew_kstack: \n");
+    monitor_write_hex(current_task->kernel_stack);
+
     new_task->parent = parent_task;
     new_task->first_child = 0;
     new_task->next = 0;
@@ -273,27 +322,33 @@ int fork()
     task_t *tmp_task = (task_t*)ready_queue;
     while (tmp_task->next)
         tmp_task = tmp_task->next;
+
     tmp_task->next = new_task;
     new_task->prev = tmp_task;
 
     // This will be the entry point for the new process.
+
     u32int eip = read_eip();
+    // monitor_write("\n(fork) - eip: ");monitor_write_hex(eip);
 
     // We could be the parent or the child here - check.
     if (current_task == parent_task)
-    {
+    {   
+        //monitor_write("\nParent: (fork) \n eip:"); monitor_write_hex(eip);
         // We are the parent, so set up the esp/ebp/eip for our child.
         u32int esp; asm volatile("mov %%esp, %0" : "=r"(esp));
         u32int ebp; asm volatile("mov %%ebp, %0" : "=r"(ebp));
         new_task->esp = esp;
         new_task->ebp = ebp;
         new_task->eip = eip;
+
         asm volatile("sti");
 
         return new_task->id;
     }
     else
     {
+        monitor_write("\nChild (fork): \n");
         // We are the child.
         return 0;
     }
@@ -379,6 +434,19 @@ void *alloc(u32int size, u8int page_align)
   heap->next->next = 0;
   return heap->next->ptr;
 }
+
+// u32int gmalloc(u32int sz, u8int align)
+// {
+//     if (gheap) {
+//         void *addr = heap_alloc(sz, (u8int)align, gheap);
+//         if (phys != 0)
+//         {
+//             page_t *page = get_page((u32int)addr, 0, current_directory);
+//             *phys = page->frame*0x1000 + ((u32int)addr&0xFFF);
+//         }
+//         return (u32int)addr;
+//     }
+// }
 
 void print_user_heap()
 {

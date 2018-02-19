@@ -11,8 +11,11 @@
 extern u32int end;
 u32int placement_address = (u32int)&end;
 extern page_directory_t *kernel_directory;
+extern page_directory_t *current_directory;
+
 heap_t *kheap=0;
 heap_t *gheap=0;
+
 u32int first = 1;
 
 u32int kmalloc_int(u32int sz, int align, u32int *phys)
@@ -92,6 +95,9 @@ static void expand(u32int new_size, heap_t *heap)
     u32int old_size = heap->end_address-heap->start_address;
 
     u32int i = old_size;
+    // Will global heap override? - No because kheap has a fixed boundary,
+    // and everything else is allocated via the gheap
+    // Place into current_directory?
     while (i < new_size)
     {
         alloc_frame( get_page(heap->start_address+i, 1, kernel_directory),
