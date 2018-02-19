@@ -66,5 +66,7 @@ int syscall_##fn(P1 p1, P2 p2, P3 p3, P4 p4, P5 p5) \
 DECL_SYSCALL1(monitor_write, const char*)
 DECL_SYSCALL1(monitor_write_hex, const char*)
 DECL_SYSCALL1(monitor_write_dec, const char*)
+DECL_SYSCALL1(free, const void*)
+DECL_SYSCALL2(alloc, const u32int, const u8int)
 
 #endif

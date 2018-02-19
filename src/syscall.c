@@ -4,21 +4,25 @@
 #include "syscall.h"
 #include "isr.h"
 #include "monitor.h"
+#include "task.h"
 
 static void syscall_handler(registers_t *regs);
 
 DEFN_SYSCALL1(monitor_write, 0, const char*);
 DEFN_SYSCALL1(monitor_write_hex, 1, const char*);
 DEFN_SYSCALL1(monitor_write_dec, 2, const char*);
+DEFN_SYSCALL1(free, 4, const void*);
+DEFN_SYSCALL2(alloc, 3, const u32int, const u8int);
 
-
-static void *syscalls[3] =
+static void *syscalls[5] =
 {
     &monitor_write,
     &monitor_write_hex,
     &monitor_write_dec,
+    &alloc,
+    &free
 };
-u32int num_syscalls = 3;
+u32int num_syscalls = 4;
 
 void initialise_syscalls()
 {
@@ -33,7 +37,7 @@ void syscall_handler(registers_t *regs)
     if (regs->eax >= num_syscalls)
         return;
 
-    // Get the required syscall location.
+    // Get the required syscall locatioallocn.
     void *location = syscalls[regs->eax];
 
     // We don't know how many parameters the function wants, so we just
