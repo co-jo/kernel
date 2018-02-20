@@ -154,7 +154,7 @@ void initialise_paging()
     // computed on-the-fly rather than once at the start.
     // Allocate a lil' bit extra so the kernel heap can be
     // initialised properly.
-    i = 0;;
+    i = 0;
 
     // Maps a frame to the page for each page defined a
     while (i < placement_address+0x1000)
@@ -164,7 +164,7 @@ void initialise_paging()
         i += 0x1000;
     }
 
-    // Now allocate thoise pages we mapped earlier.
+    // Now allocate those pages we mapped earlier.
     for (i = KHEAP_START; i < KHEAP_START+KHEAP_INITIAL_SIZE; i += 0x1000)
         alloc_frame( get_page(i, 1, kernel_directory), 0, 0);
 
@@ -199,8 +199,8 @@ void switch_page_directory(page_directory_t *dir)
 
 page_t *get_page(u32int address, int make, page_directory_t *dir)
 {
-    // monitor_write_hex(address);
-    // monitor_write("\n");
+    
+    
     // Turn the address into an index.
     address /= 0x1000;
     // Find the page table containing this address.
@@ -213,8 +213,6 @@ page_t *get_page(u32int address, int make, page_directory_t *dir)
     else if(make)
     {
         u32int tmp;
-        // monitor_write_hex(tmp);
-        // monitor_write("\n");
         dir->tables[table_idx] = (page_table_t*)kmalloc_ap(sizeof(page_table_t), &tmp);
         memset(dir->tables[table_idx], 0, 0x1000);
         dir->tablesPhysical[table_idx] = tmp | 0x7; // PRESENT, RW, US.
@@ -256,7 +254,7 @@ void page_fault(registers_t *regs)
 static page_table_t *clone_table(page_table_t *src, u32int *physAddr)
 {
     // Make a new page table, which is page aligned.
-    page_table_t *table = (page_table_t*)kmalloc_ap(sizeof(page_table_t), physAddr);
+    page_table_t *table = (page_table_t*)kmalloc_t(sizeof(page_table_t), physAddr);
     // Ensure that the new table is blank.
     memset(table, 0, sizeof(page_directory_t));
 
@@ -267,6 +265,9 @@ static page_table_t *clone_table(page_table_t *src, u32int *physAddr)
         // If the source entry has a frame associated with it...
         if (src->pages[i].frame)
         {
+            monitor_write("src->pages->frame: \n");
+            monitor_write_hex(src->pages[i].frame*0x1000);
+
             // Get a new frame.
             alloc_frame(&table->pages[i], 0, 0);
             // Clone the flags from source to destination.
@@ -285,17 +286,25 @@ static page_table_t *clone_table(page_table_t *src, u32int *physAddr)
 page_directory_t *clone_directory(page_directory_t *src)
 {
     u32int phys;
+    monitor_write(" clone_directory \n ");
     // Make a new page directory and obtain its physical address.
-    page_directory_t *dir = (page_directory_t*)kmalloc_ap(sizeof(page_directory_t), &phys);
+    page_directory_t *dir = (page_directory_t*)kmalloc_t(sizeof(page_directory_t), &phys);
+
     // Ensure that it is blank.
     memset(dir, 0, sizeof(page_directory_t));
 
     // Get the offset of tablesPhysical from the start of the page_directory_t structure.
     u32int offset = (u32int)dir->tablesPhysical - (u32int)dir;
 
-    // Then the physical address of dir->tablesPhysical is:
-    dir->physicalAddr = phys + offset;
+    // monitor_write("tablesPhysical -> ");
+    // monitor_write_hex(dir->tablesPhysical);
+    // monitor_write("\n");
+    // monitor_write("offset -> ");
+    // monitor_write_hex(offset);
+    // monitor_write("\n");
 
+    dir->physicalAddr = phys + offset; 
+    // dont alloc space?
     // Go through each page table. If the page table is in the kernel directory, do not make a new copy.
     int i;
     for (i = 0; i < 1024; i++)
@@ -317,68 +326,6 @@ page_directory_t *clone_directory(page_directory_t *src)
             dir->tablesPhysical[i] = phys | 0x07;
         }
     }
+
     return dir;
-}
-
-void print_table() {
-    u32int min = 2147483647;
-    u32int max = 0;
-    int i = 0;
-    for ( ; i < 1024; i++) {
-        page_table_t *table = current_directory->tables[i];
-        int j = 0;
-        for ( ; j < 1024; j++) {
-            page_t page = table->pages[j];
-            if (page.frame > max)
-                max = page.frame;
-            if (page.frame < min)
-                min = page.frame;
-        }
-
-        // if (table != 0) {
-        //     monitor_write_dec(table);
-        //     monitor_write("\n");
-        // }
-    }
-
-    monitor_write("min: ");
-    monitor_write_hex(min);
-    monitor_write("\n");
-    monitor_write("max:");
-    monitor_write_hex(max);
-    monitor_write("\n");
-    monitor_write("frames_allocated:");
-    monitor_write_dec(frames_allocated);
-
-    monitor_write("\n");
-
-    // min = 2147483647;
-    // max = 0;
-    // i = 0;
-    // for ( ; i < 1024; i++) {
-    //     page_table_t *table = kernel_directory->tables[i];
-    //     int j = 0;
-    //     for ( ; j < 1024; j++) {
-    //         page_t page = table->pages[j];
-    //         if (page.frame > max)
-    //             max = page.frame;
-    //         if (page.frame < min)
-    //             min = page.frame;
-    //     }
-
-    //     // if (table != 0) {
-    //     //     monitor_write_dec(table);
-    //     //     monitor_write("\n");
-    //     // }
-    // }
-
-    // monitor_write("min: ");
-    // monitor_write_dec(min);
-    // monitor_write("\n");
-    // monitor_write("max:");
-    // monitor_write_dec(max);
-    // monitor_write("\n");
-    // monitor_write("frames_allocated:");
-    // monitor_write_dec(frames_allocated);;
-
 }

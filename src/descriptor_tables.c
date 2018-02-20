@@ -102,10 +102,7 @@ static void write_tss(s32int num, u16int ss0, u32int esp0)
 
 void set_kernel_stack(u32int stack)
 {
-    monitor_write("\nset_kernel_stack: ");
-    monitor_write_hex(stack);
     tss_entry.esp0 = stack;
-    monitor_write("\n========================== \n");
 }
 
 static void init_idt()

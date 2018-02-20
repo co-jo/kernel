@@ -72,5 +72,7 @@ DECL_SYSCALL1(free, const void*)
 DECL_SYSCALL2(alloc, const u32int, const u8int)
 // Process
 DECL_SYSCALL0(fork)
+DECL_SYSCALL0(irq0)
+DECL_SYSCALL0(isr0)
 
 #endif

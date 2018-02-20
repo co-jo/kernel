@@ -29,6 +29,7 @@ typedef struct page_directory
        Array of pointers to pagetables.
     **/
     page_table_t *tables[1024];
+    
     /**
        Array of pointers to the pagetables above, but gives their *physical*
        location, for loading into the CR3 register.

@@ -39,24 +39,14 @@ int main(struct multiboot *mboot_ptr, u32int initial_stack)
     //     monitor_write("PID == 0\n");
     // }
 
-    // monitor_write("Process: ");
-    // monitor_write_hex(process);
-    // monitor_write("\n");
-
     switch_to_user_mode();
 
     int process = syscall_fork();
 
-    syscall_monitor_write("\nProcess: ");
     syscall_monitor_write_hex(process);
     syscall_monitor_write("\n");
 
-    if (process == 2) {
-        // syscall_monitor_write("\n PID == 2");
 
-    } else {
-        // syscall_monitor_write("\n PID == 0");
-    }
 
     return 0;
 }

@@ -5,6 +5,7 @@
 #include "isr.h"
 #include "monitor.h"
 #include "task.h"
+#include "descriptor_tables.h"
 
 static void syscall_handler(registers_t *regs);
 
@@ -17,17 +18,21 @@ DEFN_SYSCALL2(alloc, 3, const u32int, const u8int);
 DEFN_SYSCALL1(free, 4, const void*);
 // Process
 DEFN_SYSCALL0(fork, 5);
+DEFN_SYSCALL0(isr0, 6);
+DEFN_SYSCALL0(irq0, 7);
 
-static void *syscalls[6] =
+static void *syscalls[8] =
 {
     &monitor_write,
     &monitor_write_hex,
     &monitor_write_dec,
     &alloc,
     &free,
-    &fork
+    &fork,
+    &isr0,
+    &irq0
 };
-u32int num_syscalls = 6;
+u32int num_syscalls = 8;
 
 void initialise_syscalls()
 {

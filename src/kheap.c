@@ -20,9 +20,6 @@ u32int first = 1;
 
 u32int kmalloc_int(u32int sz, int align, u32int *phys)
 {
-    // monitor_write_dec(sz);
-    // monitor_write("\n");
-
     if (kheap != 0)
     {
         void *addr = heap_alloc(sz, (u8int)align, kheap);
@@ -30,6 +27,22 @@ u32int kmalloc_int(u32int sz, int align, u32int *phys)
         {
             page_t *page = get_page((u32int)addr, 0, kernel_directory);
             *phys = page->frame*0x1000 + ((u32int)addr&0xFFF);
+            if (align == 5) {
+
+                monitor_write("phs - kmallc -> ");
+                monitor_write_hex(*phys);
+                monitor_write("\n");             
+                monitor_write("*page - kmallc -> ");
+                int *ptr = page;
+                monitor_write_hex(*ptr);
+                monitor_write("\n");          
+            }
+        }
+        if (align == 5) {
+            int *ptr = addr;
+            monitor_write("addr - kmallc -> ");
+            monitor_write_hex(addr);
+            monitor_write("\n");
         }
         return (u32int)addr;
     }
@@ -69,6 +82,12 @@ u32int kmalloc_p(u32int sz, u32int *phys)
 u32int kmalloc_ap(u32int sz, u32int *phys)
 {
     return kmalloc_int(sz, 1, phys);
+}
+
+
+u32int kmalloc_t(u32int sz, u32int *phys)
+{
+    return kmalloc_int(sz, 5, phys);
 }
 
 u32int kmalloc(u32int sz)
@@ -210,13 +229,8 @@ heap_t *create_heap(u32int start, u32int end_addr, u32int max, u8int supervisor,
 
 void *heap_alloc(u32int size, u8int page_align, heap_t *heap)
 {
-
     // Make sure we take the size of header/footer into account.
     u32int new_size = size + sizeof(header_t) + sizeof(footer_t);
-    // monitor_write("new_szie \n");
-    // monitor_write_dec(new_size);
-    // monitor_write("\n");
-
     // Find the smallest hole that will fit.
     s32int iterator = find_smallest_hole(new_size, page_align, heap);
 
