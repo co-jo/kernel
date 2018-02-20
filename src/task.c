@@ -42,11 +42,12 @@ void initialise_tasking()
     current_task->eip = 0;
     current_task->time_spent = 0;
     current_task->priority = 4;
+    current_task->death_flag = 0;
 
     current_task->page_directory = current_directory;
     current_task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE);
-    monitor_write("first_kstack: \n");
-    monitor_write_hex(current_task->kernel_stack);
+    /* monitor_write("first_kstack: \n");
+       monitor_write_hex(current_task->kernel_stack);*/
     current_task->parent = 0;
     current_task->next_sibling = 0;
     current_task->first_child = 0;
@@ -113,18 +114,18 @@ void move_stack(void *new_stack_start, u32int size)
 }
 
 // grab the next task in the priority queue and change priorities
-void reprioritize()
+void schedule()
 {
     // monitor_write("Reprioritizing...\n");
     // print_ready_queue();
 
     // 1 is the 'highest' priority, 10 is the 'lowest'
     // meaning a greater priority value is actually lower priority :)
-    current_task = ready_queue;
     // return immediately if the ready queue only has one task
     if (!ready_queue->next) {
         return;
     }
+    current_task = ready_queue;
 
     task_t *first_task = (task_t*)ready_queue;
     task_t *tmp_task = (task_t*)ready_queue;
@@ -140,55 +141,56 @@ void reprioritize()
         tmp_task->next = first_task;
         first_task->prev = tmp_task;
         first_task->next = 0;
-        return;
-    }
-
-    // 
-    first_task->priority++;
-    if (first_task->priority > first_task->next->priority) {
-        ready_queue = ready_queue->next;
-        ready_queue->prev = 0;
-        tmp_task = tmp_task->next;
-        // while tmp_task still has a higher priority than first_task
-        while (first_task->priority > tmp_task->priority) {
-            if (tmp_task->next) 
-                tmp_task = tmp_task->next;
-            else
-                break;
-        }
-        if (tmp_task->next) {
-            // tmp_task now has a lesser or equal priority to first_task
-            tmp_task->prev->next = first_task;
-            first_task->prev = tmp_task->prev;
-            first_task->next = tmp_task;
-            tmp_task->prev = first_task;
-            return;
-        } else {
-            tmp_task->next = first_task;
-            first_task->prev = tmp_task;
-            first_task->next = 0;
-            return;
+    } else {
+        first_task->priority++;
+        if (first_task->priority > first_task->next->priority) {
+            ready_queue = ready_queue->next;
+            ready_queue->prev = 0;
+            tmp_task = tmp_task->next;
+            // while tmp_task still has a higher priority than first_task
+            while (first_task->priority > tmp_task->priority) {
+                if (tmp_task->next) 
+                    tmp_task = tmp_task->next;
+                else
+                    break;
+            }
+            if (tmp_task->next) {
+                // tmp_task now has a lesser or equal priority to first_task
+                tmp_task->prev->next = first_task;
+                first_task->prev = tmp_task->prev;
+                first_task->next = tmp_task;
+                tmp_task->prev = first_task;
+            } else {
+                tmp_task->next = first_task;
+                first_task->prev = tmp_task;
+                first_task->next = 0;
+            }
         }
     }
+    return;
 }
 
-heap_u *clone_heap(heap_u *heap)
+// creates a new heap, copying over all of the data in the old one
+heap_u *clone_heap(heap_u *old_heap)
 {   
-    if (!heap) return;
+    if (!old_heap) return 0;
     heap_u *new_heap = (heap_u*)kmalloc(sizeof(heap_u));
-    memset(new_heap, 0, sizeof(heap_u));
-
-    while(heap) {
-        // alloc to heap -> returns addr
-        new_heap->ptr = heap->ptr;
-        new_heap->next = heap->next;
-        heap = heap -> next;
+    heap_u *tmp = new_heap;
+    while (old_heap) {
+        if (!tmp) 
+            tmp = (heap_u*)kmalloc(sizeof(heap_u));
+        tmp->ptr = alloc(sizeof(old_heap->size), old_heap->align);
+        memset(tmp->ptr, old_heap->ptr, old_heap->size);
+        tmp->size = old_heap->size;
+        tmp->align = old_heap->align;
+        tmp = tmp->next;
+        old_heap = old_heap->next;
     }
+    return new_heap;
 }
 
 void switch_task()
 {    
-
     // monitor_write("\n====== enter_switch ======\n");
     // If we haven't initialised tasking yet, just return.
     if (!current_task)
@@ -230,8 +232,7 @@ void switch_task()
     current_task->ebp = ebp;
 
     // Get the next task to run.
-    reprioritize();
-    // current_task = current_task->next;
+    schedule();
 
     // If we fell off the end of the linked list start again at the beginning.
     // !!!! won't happen with current implementation
@@ -247,12 +248,12 @@ void switch_task()
     // Change our kernel stack over.
 
 
-    monitor_write("\n==== current_kstack: ===== \n");
+    /*  monitor_write("\n==== current_kstack: ===== \n");
     monitor_write("pid: ");
     monitor_write_hex(current_task->id);
     monitor_write("\n");
 
-    monitor_write_hex(current_task->kernel_stack);
+    monitor_write_hex(current_task->kernel_stack);*/
     set_kernel_stack(current_task->kernel_stack+KERNEL_STACK_SIZE);
 
     // Here we:
@@ -287,7 +288,7 @@ int fork()
     // Clone the address space.
     page_directory_t *directory = clone_directory(current_directory);
     // Clone the user heap
-    // heap_u *heap = clone_heap(parent_task->heap);
+    heap_u *heap = clone_heap(parent_task->heap);
 
     // Create a new process.
     task_t *new_task = (task_t*)kmalloc(sizeof(task_t));
@@ -296,17 +297,19 @@ int fork()
     new_task->esp = new_task->ebp = 0;
     new_task->eip = 0;
     new_task->priority = 4;
+    new_task->death_flag = 0;
     new_task->time_spent = 0;
     new_task->page_directory = directory;
-    // new_task->heap = heap;
-    // ?
+    new_task->heap = heap;
+
     current_task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE);
-    monitor_write("\nnew_kstack: \n");
-    monitor_write_hex(current_task->kernel_stack);
+    //monitor_write("\nnew_kstack: \n");
+    //monitor_write_hex(current_task->kernel_stack);
 
     new_task->parent = parent_task;
     new_task->first_child = 0;
     new_task->next = 0;
+    new_task->next_sibling= 0;
 
     // Add it to the end of the linked list of children tasks
     task_t *child = parent_task->first_child;
@@ -318,13 +321,8 @@ int fork()
         child->next_sibling = new_task;
     }   
 
-    // Add it to the end of the ready queue.
-    task_t *tmp_task = (task_t*)ready_queue;
-    while (tmp_task->next)
-        tmp_task = tmp_task->next;
-
-    tmp_task->next = new_task;
-    new_task->prev = tmp_task;
+    // Add it into the ready queue.
+    add_to_ready_queue(new_task);
 
     // This will be the entry point for the new process.
 
@@ -348,11 +346,154 @@ int fork()
     }
     else
     {
-        monitor_write("\nChild (fork): \n");
         // We are the child.
         return 0;
     }
+}
 
+void yield()
+{
+    switch_task();
+}
+
+void exit()
+{
+    task_t *dying = (task_t*)current_task;
+    monitor_write("Exiting from Task ");
+    monitor_write_dec(dying->id);
+    monitor_write("\n");
+    // set the death flag to 1
+    dying->death_flag = 1;
+    // if the task has no children, we can free all resources immediately
+    if (!dying->first_child) {
+        monitor_write("No children\n");
+        free_heap(dying->heap);
+        kfree(dying->page_directory);
+        dying->prev = dying->next;
+        dying->next = dying->prev;
+        task_t *parent = dying->parent;
+        if (parent->first_child->id == dying->id) {
+            parent->first_child = 0;
+        } else {
+            task_t *sibling = parent->first_child;
+            while (sibling->next)
+                if (sibling->next->id == dying->id)
+                    sibling->next = dying->next;
+        }
+        monitor_write("Dying...\n");
+        kfree(dying);
+        schedule(ready_queue);
+    } else {
+        // the dying task has children, which need to die first before it can die
+        task_t *iterator = dying->first_child; 
+        while(iterator) {
+            monitor_write_dec(iterator->id);
+            monitor_write("\n");
+            if (iterator->death_flag != 1)
+                iterator->death_flag = 1;
+            if (iterator->priority < dying->priority)
+                setpriority(iterator->id, dying->priority);
+            iterator = iterator->next_sibling;
+        }
+        setpriority(dying->id, dying->priority + 1);
+    }
+    print_ready_queue();
+    schedule();
+}
+
+// frees all resources allocated to a user heap
+void free_heap(heap_u *heap) {
+    if (!heap) return;
+    heap_u *iterator = heap;
+    while (iterator->next) {
+        free(iterator->ptr);
+        iterator = iterator->next;
+        kfree(heap);
+        heap = iterator;
+    }
+    free(heap->ptr);
+    kfree(heap);
+    return;
+}
+
+int setpriority(int pid, int new_priority) 
+{
+    /*
+    monitor_write("Setting priority of ");
+    monitor_write_dec(pid);
+    monitor_write("\n");
+    */
+    task_t *iter = (task_t*)ready_queue;
+    if (iter->id == pid) {
+        ready_queue = ready_queue->next;
+        ready_queue->prev = 0;
+        iter->next = 0;
+        iter->priority = new_priority;
+        add_to_ready_queue(iter);
+        return new_priority;
+    }
+    while(iter && (pid != iter->id))
+        iter = iter->next;
+    // if we found a task with a matching pid
+    if (iter) {
+        // set the new priority, and remove the task from the ready queue
+        iter->priority = new_priority;
+        iter->prev->next = iter->next;
+        iter->next->prev = iter->prev;
+        iter->next = 0;
+        iter->prev = 0;
+        // then add the task back into the queue
+        add_to_ready_queue(iter);
+        return new_priority;
+    } else {
+        return 0;
+    }
+}
+
+void add_to_ready_queue(task_t *task)
+{
+    /*
+    monitor_write("Adding Task ");
+    monitor_write_dec(task->id);
+    monitor_write("\n");
+    */
+    if (!task) return;
+    task_t *iterator = (task_t*)ready_queue;
+
+    // edge case, one element queue
+    if (!iterator->next) {
+        if (task->priority <= iterator->priority) {
+            task->next = iterator;
+            iterator->prev = task;
+            ready_queue = task;
+        } else {
+            iterator->next = task;
+            task->prev = iterator;
+        }
+        return;
+    }
+
+    while (iterator->next) {
+        // if task is still a lower priority than the iterator
+        if (task->priority > iterator->priority) {
+            iterator = iterator->next;
+        } else {
+            break;
+        }
+    }
+    // if we haven't reached the end of the queue
+    if (iterator->next) {
+        task->next = iterator->next;
+        iterator->next = task;
+        task->prev = iterator;
+        task->next = task;
+    } else {
+        iterator->next = task;
+        task->prev = iterator;
+        task->next = 0;
+    }
+    // print_ready_queue();
+    // the task is now in the correct place in the queue
 }
 
 int getpid()
@@ -468,6 +609,8 @@ void print_ready_queue()
     while (task) {
         monitor_write("Task ID: ");
         monitor_write_dec(task->id);
+        monitor_write(" Priority: ");
+        monitor_write_dec(task->priority);
         monitor_write("\n");
         task = task->next;
     }

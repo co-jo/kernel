@@ -14,8 +14,10 @@
 // wrapper around heap_t for tasks
 typedef struct heap_u
 {
-  void *ptr;
-  struct heap_u *next;
+    void *ptr;
+    u32int size;
+    u32int align;
+    struct heap_u *next;
 } heap_u;
 
 // This structure defines a 'task' - a process.
@@ -29,6 +31,7 @@ typedef struct task
     heap_u *heap;
     page_directory_t *page_directory; // Page directory.
     u32int kernel_stack;
+    u8int death_flag;                 // Is this task ready to die next time it's scheduled?
     struct task *parent;              // Who forked this task?
     struct task *next_sibling;        // The siblings of this task
     struct task *first_child;         // The first child
@@ -66,6 +69,16 @@ void print_user_heap();
 
 // grabs task at front of list, then updates the next task.
 // add support for preemption via interrupt?
-void reprioritize();
+void schedule();
+
+// copies a user heap
+heap_u *clone_heap(heap_u *old_heap);
+
+// adds a task into the ready queue at the proper place
+void add_to_ready_queue(task_t *task);
+
+void exit();
+
+void free_heap(heap_u *heap);
 
 #endif

@@ -1,0 +1,20 @@
+CS4405 Deliverable 1
+
+Joshua Gunter
+Colin Hryniowski
+
+Currently we have memory management implemented, and process management partially
+implemented. Neither sleep() nor exit() has been successfully finished (we have
+some exit() code which does not work, and didn't get around to sleep() because we
+were focused on exit).
+
+In addition, our transition to user mode does not work for some reason - it might
+be a bug in our assembly code for it. However, syscalls DO work, they're just 
+currently redundant.
+
+Currently main.c shows a successful fork, demonstrates a simple example of forced
+priority changes and tasks moving in the queue, along with some yielding. You can
+also verify that alloc() and free() do their jobs, although we don't have that
+demonstrated. To compile, just run "make". To run, use the command
+
+    

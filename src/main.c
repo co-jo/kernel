@@ -29,10 +29,35 @@ int main(struct multiboot *mboot_ptr, u32int initial_stack)
     initialise_tasking();
 
     // Create a new process in a new address space which is a clone of this.
-    initialise_syscalls();
+    // initialise_syscalls();
 
-    // int process = fork();
-
+    int pid = fork();
+    if (pid == 2) {  
+        monitor_write("In Task 1\n");
+        monitor_write("Setting Task 1 to priority 2\n");
+        setpriority(1, 2);
+        print_ready_queue();
+        monitor_write("Setting Task 2 to priority 1\n");
+        setpriority(2, 1);
+        print_ready_queue();
+        monitor_write("Yielding in Task 1...\n");
+        yield();
+        monitor_write("In Task 1 again\n");
+        monitor_write("Yielding in Task 1...\n");
+        yield();
+        monitor_write("In Task 1 a third time\n");
+    } else {
+        monitor_write("In Task 2\n");
+        print_ready_queue();
+        monitor_write("Setting Task 2 to priority 6\n");
+        setpriority(2, 6);
+        print_ready_queue();
+        monitor_write("Yielding in Task 2...\n");
+        yield();
+        monitor_write("In Task 2 again\n");
+        print_ready_queue();
+    }
+    
     // if (process == 2) {
     //     monitor_write("PID == 1\n");
     // } else if (process == 0) {
@@ -42,7 +67,7 @@ int main(struct multiboot *mboot_ptr, u32int initial_stack)
     // monitor_write("Process: ");
     // monitor_write_hex(process);
     // monitor_write("\n");
-
+/*
     switch_to_user_mode();
 
     int process = syscall_fork();
@@ -57,6 +82,6 @@ int main(struct multiboot *mboot_ptr, u32int initial_stack)
     } else {
         // syscall_monitor_write("\n PID == 0");
     }
-
+*/
     return 0;
 }
