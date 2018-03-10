@@ -3,35 +3,54 @@
 
 #include "timer.h"
 #include "isr.h"
-#include "monitor.h"
+#include "debug.h"
 
-u32int tick = 0;
-u32int quantum = 1000;
+/* This will keep track of how many ticks that the system
+*  has been running for */
+int timer_ticks = 0;
+int frequency = 0;
 
-static void timer_callback(registers_t regs)
+/* Handles the timer. In this case, it's very simple: We
+*  increment the 'timer_ticks' variable every time the
+*  timer fires. By default, the timer fires 18.222 times
+*  per second. Why 18.222Hz? Some engineer at IBM must've
+*  been smoking something funky */
+void timer_handler(regs *r)
 {
-    tick++;
-    switch_task();
+    /* Every 18 clocks (approximately 1 second), we will
+    *  display a message on the screen */
+    puts("Timer Tick:\n");
+    if (timer_ticks % frequency == 0)
+    {
+        puts("One second has passed\n");
+        switch_task();
+    }
 }
 
-void init_timer(u32int frequency)
+/* Sets up the system clock by installing the timer handler
+*  into IRQ0 */
+void timer_install(int hz)
 {
-    // Firstly, register our timer callback.
-    register_interrupt_handler(IRQ0, &timer_callback);
+    timer_phase(hz);
+    /* Installs 'timer_handler' to IRQ0 */
+    irq_install_handler(0, timer_handler);
+}
 
-    // The value we send to the PIT is the value to divide it's input clock
-    // (1193180 Hz) by, to get our required frequency. Important to note is
-    // that the divisor must be small enough to fit into 16-bits.
-    u32int divisor = 1193180 / frequency;
+void timer_phase(int hz)
+{
+    frequency = hz;
+    int divisor = 1193180 / hz;       /* Calculate our divisor */
+    outportb(0x43, 0x36);                    /* Set our command byte 0x36 */
+    outportb(0x40, divisor & 0xFF);          /* Set low byte of divisor */
+    outportb(0x40, divisor >> 8);            /* Set high byte of divisor */
+}
 
-    // Send the command byte.
-    outb(0x43, 0x36);
+/* This will continuously loop until the given time has
+*  been reached */
+void timer_wait(int ticks)
+{
+    unsigned long eticks;
 
-    // Divisor has to be sent byte-wise, so split here into upper/lower bytes.
-    u8int l = (u8int)(divisor & 0xFF);
-    u8int h = (u8int)( (divisor>>8) & 0xFF );
-
-    // Send the frequency divisor.
-    outb(0x40, l);
-    outb(0x40, h);
+    eticks = timer_ticks + ticks;
+    while(timer_ticks < eticks);
 }

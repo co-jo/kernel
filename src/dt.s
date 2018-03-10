@@ -17,13 +17,14 @@ gdt_flush:
     mov gs, ax
     mov ss, ax
     jmp 0x08:.flush   ; 0x08 is the offset to our code segment: Far jump!
+
 .flush:
     ret
 
 [GLOBAL idt_flush]    ; Allows the C code to call idt_flush().
 
 idt_flush:
-    mov eax, [esp+4]  ; Get the pointer to the IDT, passed as a parameter. 
+    mov eax, [esp+4]  ; Get the pointer to the IDT, passed as a parameter.
     lidt [eax]        ; Load the IDT pointer.
     ret
 
@@ -34,4 +35,4 @@ tss_flush:
                      ; long, but we set the bottom two bits (making 0x2B)
                      ; so that it has an RPL of 3, not zero.
    ltr ax            ; Load 0x2B into the task state register.
-   ret 
+   ret

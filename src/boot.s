@@ -38,7 +38,7 @@ start:
     ; Load multiboot information:
     push esp
     push ebx
-
+    
     ; Execute the kernel:
     cli                         ; Disable interrupts.
     call main                   ; call our main() function.

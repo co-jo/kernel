@@ -1,41 +1,43 @@
-// main.c -- Defines the C-code kernel entry point, calls initialisation routines.
-//           Made for JamesM's tutorials <www.jamesmolloy.co.uk>
+#include "system.h"
+#include "gdt.h"
+#include "idt.h"
+#include "isr.h"
+#include "irq.h"
 
-#include "monitor.h"
-#include "descriptor_tables.h"
+#include "scrn.h"
 #include "timer.h"
 #include "paging.h"
 #include "task.h"
+
 #include "syscall.h"
+#include "debug.h"
+unsigned int initial_esp;
 
-extern u32int placement_address;
-u32int initial_esp;
-
-int main(struct multiboot *mboot_ptr, u32int initial_stack)
+int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
 {
-    initial_esp = initial_stack;
-    // Initialise all the ISRs and segmentation
-    init_descriptor_tables();
-    // Initialise the screen (by clearing it)
-    monitor_clear();
-    // Initialise the PIT to 100Hz
-    asm volatile("sti");
-    init_timer(50);
+  initial_esp = initial_stack;
+  
+  /* Descriptor Tables */
+  gdt_install();
+  idt_install();
+  /* Interrupt Handlers */
+  isr_install();
+  irq_install();
+  /* Video Output */
+  init_video();
+  /* Support Tasking */
+  timer_install(100);
+  initialise_paging();
+  initialise_tasking();
+  
+  /* Support RING3 */
+  // initialise_syscalls();
 
-    // Start paging.
-    initialise_paging();
+  // switch_to_user_mode();
+  int pid = fork();
+  printf("pid : [%x]\n", pid);
 
-    // Start multitasking.
-    initialise_tasking();
+  puts("Hello World");
 
-    // Create a new process in a new address space which is a clone of this.
-    initialise_syscalls();
-
-    int var = fork();
-
-    // switch_to_user_mode();
-    //
-    // syscall_monitor_write("Hello, user world!\n");
-
-    return 0;
+  return 0;
 }

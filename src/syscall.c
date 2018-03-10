@@ -3,22 +3,20 @@
 
 #include "syscall.h"
 #include "isr.h"
+#include "task.h"
+#include "debug.h"
 
-#include "monitor.h"
+static void syscall_handler(regs *regs);
 
-static void syscall_handler(registers_t *regs);
 
-DEFN_SYSCALL1(monitor_write, 0, const char*);
-DEFN_SYSCALL1(monitor_write_hex, 1, const char*);
-DEFN_SYSCALL1(monitor_write_dec, 2, const char*);
+DEFN_SYSCALL0(fork, 0);
 
-static void *syscalls[3] =
+static void *syscalls[1] =
 {
-    &monitor_write,
-    &monitor_write_hex,
-    &monitor_write_dec,
+
+    &fork
 };
-u32int num_syscalls = 3;
+unsigned int num_syscalls = 1;
 
 void initialise_syscalls()
 {
@@ -26,13 +24,12 @@ void initialise_syscalls()
     register_interrupt_handler (0x80, &syscall_handler);
 }
 
-void syscall_handler(registers_t *regs)
+void syscall_handler(regs *regs)
 {
     // Firstly, check if the requested syscall number is valid.
     // The syscall number is found in EAX.
     if (regs->eax >= num_syscalls)
         return;
-
     // Get the required syscall location.
     void *location = syscalls[regs->eax];
 

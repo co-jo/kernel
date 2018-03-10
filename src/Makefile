@@ -3,20 +3,38 @@
 # The only one that needs changing is the assembler 
 # rule, as we use nasm instead of GNU as.
 
-SOURCES=boot.o main.o monitor.o common.o descriptor_tables.o isr.o interrupt.o gdt.o timer.o \
-        kheap.o paging.o ordered_array.o task.o process.o syscall.o
+SOURCES=boot.o 								\
+				system.o 							\
+				main.o								\
+				irq.o									\
+				isr.o 								\
+				dt.o									\
+				gdt.o 								\
+				idt.o								  \
+				timer.o								\
+        kheap.o 							\
+				paging.o 							\
+				ordered_array.o 			\
+				task.o 								\
+				process.o 						\
+				syscall.o							\
+				debug.o 							\
+				scrn.o								\
 
 CFLAGS=-m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector
 LDFLAGS=-melf_i386 -Tlink.ld
 ASFLAGS=-felf
 
-all: $(SOURCES) link
+all: $(SOURCES) link run
 
 clean:
 	-rm *.o kernel
 
 link:
 	ld $(LDFLAGS) -o kernel $(SOURCES)
+
+run:
+	fcs-qemu-run-kernel -kernel kernel -bootdisk ../floppy.img
 
 .s.o:
 	nasm $(ASFLAGS) $<
