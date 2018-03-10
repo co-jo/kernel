@@ -1,8 +1,8 @@
 // paging.h -- Defines the interface for and structures relating to paging.
 //             Written for JamesM's kernel development tutorials.
 
-#ifndef PAGING_H
-#define PAGING_H
+#ifndef PAGING
+#define PAGING
 
 #include "system.h"
 #include "isr.h"
@@ -46,7 +46,7 @@ void initialise_paging();
    Causes the specified page directory to be loaded into the
    CR3 register.
 **/
-void switch_page_directory(page_directory_t *new);
+void switch_page_directory(page_directory_t *directory);
 
 /**
    Retrieves a pointer to the page required.

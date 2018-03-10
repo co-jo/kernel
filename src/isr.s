@@ -1,21 +1,17 @@
-; This macro creates a stub for an ISR which does NOT pass it's own
-; error code (adds a dummy errcode byte).
 %macro ISR_NOERR 1
   global isr%1
   isr%1:
     cli                         ; Disable interrupts firstly.
     push byte 0                 ; Push a dummy error code.
     push %1                     ; Push the interrupt number.
-    jmp isr_stub         ; Go to our common handler code.
+    jmp isr_stub                ; Go to our common handler code.
 %endmacro
 
-; This macro creates a stub for an ISR which passes it's own
-; error code.
 %macro ISR_ERR 1
   global isr%1
   isr%1:
     cli                         ; Disable interrupts.
-    push %1                ; Push the interrupt number
+    push %1                     ; Push the interrupt number
     jmp isr_stub
 %endmacro
 

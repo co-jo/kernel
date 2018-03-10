@@ -3,8 +3,8 @@
 //            initialised.
 //            Written for JamesM's kernel development tutorials.
 
-#ifndef KHEAP_H
-#define KHEAP_H
+#ifndef KHEAP
+#define KHEAP
 
 #include "system.h"
 #include "ordered_array.h"
@@ -94,4 +94,4 @@ void kfree(void *p);
 
 void heap_state(heap_t *heap);
 
-#endif // KHEAP_H
+#endif

@@ -1,5 +1,5 @@
-#include "system.h"
-#include "irq.h"
+#include "./include/system.h"
+#include "./include/irq.h"
 
 /* These are own ISRs that point to our special IRQ handler
  *  instead of the regular 'fault_handler' function */
@@ -21,14 +21,6 @@ void irq_uninstall_handler(int irq)
   irq_routines[irq] = 0;
 }
 
-/* Normally, IRQs 0 to 7 are mapped to entries 8 to 15. This
- *  is a problem in protected mode, because IDT entry 8 is a
- *  Double Fault! Without remapping, every time IRQ0 fires,
- *  you get a Double Fault Exception, which is NOT actually
- *  what's happening. We send commands to the Programmable
- *  Interrupt Controller (PICs - also called the 8259's) in
- *  order to make IRQ0 to 15 be remapped to IDT entries 32 to
- *  47 */
 void irq_remap(void)
 {
   outportb(0x20, 0x11);
@@ -43,9 +35,6 @@ void irq_remap(void)
   outportb(0xA1, 0x0);
 }
 
-/* We first remap the interrupt controllers, and then we install
- *  the appropriate ISRs to the correct entries in the IDT. This
- *  is just like installing the exception handlers */
 void irq_install()
 {
   irq_remap();

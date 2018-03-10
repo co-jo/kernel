@@ -2,8 +2,8 @@
 //          Written for JamesM's kernel development tutorials.
 //
 
-#ifndef TASK_H
-#define TASK_H
+#ifndef TASK
+#define TASK
 
 #include "system.h"
 #include "paging.h"

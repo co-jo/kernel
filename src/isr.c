@@ -1,11 +1,6 @@
-//
-// isr.c -- High level interrupt service routines and interrupt request handlers.
-//          Part of this code is modified from Bran's kernel development tutorials.
-//          Rewritten for JamesM's kernel development tutorials.
-//
-#include "system.h"
-#include "isr.h"
-#include "scrn.h"
+#include "./include/system.h"
+#include "./include/isr.h"
+#include "./include/scrn.h"
 
 isr_t interrupt_handlers[256] = { 0 };
 
@@ -53,10 +48,6 @@ void isr_install()
   idt_set_gate(31, (unsigned)isr31, 0x08, 0x8E);
 }
 
-/* This is a simple string array. It contains the message that
- *  corresponds to each and every exception. We get the correct
- *  message by accessing like:
- *  exception_message[interrupt_number] */
 unsigned char *exception_messages[] =
 {
   "Division By Zero",

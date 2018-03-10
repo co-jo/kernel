@@ -2,8 +2,8 @@
 //                    from ordered arrays.
 //                    Written for JamesM's kernel development tutorials.
 
-#ifndef ORDERED_ARRAY_H
-#define ORDERED_ARRAY_H
+#ifndef ORDERED_ARRAY
+#define ORDERED_ARRAY
 
 #include "system.h"
 
@@ -56,4 +56,4 @@ type_t lookup_ordered_array(unsigned int i, ordered_array_t *array);
 **/
 void remove_ordered_array(unsigned int i, ordered_array_t *array);
 
-#endif // ORDERED_ARRAY_H
+#endif

@@ -21,9 +21,9 @@ SOURCES=boot.o 								\
 				debug.o 							\
 				scrn.o								\
 
-CFLAGS=-m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector
-LDFLAGS=-melf_i386 -Tlink.ld
-ASFLAGS=-felf
+CFLAGS = -I ./include/ -m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector
+LDFLAGS= -melf_i386 -Tlink.ld
+ASFLAGS= -felf
 
 all: $(SOURCES) link run
 
