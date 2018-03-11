@@ -1,6 +1,6 @@
-#include "./include/timer.h"
-#include "./include/isr.h"
-#include "./include/debug.h"
+#include "timer.h"
+#include "isr.h"
+#include "debug.h"
 
 /* This will keep track of how many ticks that the system
 *  has been running for */
