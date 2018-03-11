@@ -1,6 +1,6 @@
-#include "./include/system.h"
-#include "./include/isr.h"
-#include "./include/scrn.h"
+#include "system.h"
+#include "isr.h"
+#include "scrn.h"
 
 isr_t interrupt_handlers[256] = { 0 };
 

@@ -16,7 +16,7 @@ unsigned int initial_esp;
 int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
 {
   initial_esp = initial_stack;
-  
+
   /* Descriptor Tables */
   gdt_install();
   idt_install();
@@ -27,9 +27,11 @@ int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
   init_video();
   /* Support Tasking */
   timer_install(100);
+  asm volatile("sti");
+
   initialise_paging();
   initialise_tasking();
-  
+
   /* Support RING3 */
   // initialise_syscalls();
 
