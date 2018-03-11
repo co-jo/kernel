@@ -119,7 +119,7 @@ void direct_memory_map()
     if (i/FRAME_SIZE != page->frame) {
       printf("[%x] - ", i);
       printf("[%x]\n", page->frame);
-      halt("");
+      halt("DMM Failed.");
     }
   }
 }

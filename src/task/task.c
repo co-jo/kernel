@@ -170,7 +170,7 @@ int fork()
   // Clone the address space.
   task_t *child = create_task();
 
-  printf("FORKED CHILD - [%x]\n", child);
+  // printf("FORKED CHILD - [%x]\n", child);
 
   // Add it to the end of the ready queue.
   task_t *tmp_task = (task_t*)ready_queue;
@@ -178,10 +178,10 @@ int fork()
     tmp_task = tmp_task->next;
   }
   tmp_task->next = child;
-  printf("TMP TSAK? %x\n", tmp_task);
+  // printf("TMP TSAK? %x\n", tmp_task);
   // This will be the entry point for the new process.
   unsigned int eip = read_eip();
-  printf("FORK EIP: [%x]\n", eip);
+  // printf("FORK EIP: [%x]\n", eip);
   // We could be the parent or the child here - check.
   if (current_task == parent_task)
   {
@@ -193,9 +193,9 @@ int fork()
     child->eip = eip;
 
 
-    puts("PARENT RET \n");
+    // puts("PARENT RET \n");
 
-    printf("Main EIP? [%x]\n", read_eip());
+    // printf("Main EIP? [%x]\n", child->eip);
 
     asm volatile("sti");
     return child->id;

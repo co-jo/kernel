@@ -4,44 +4,29 @@
 # rule, as we use nasm instead of GNU as.
 
 CSRC 	= $(shell find ./ -name '*.c')
-ASRC 	= $(shell find ./ -name '*.s')
+ASRC 	= src/boot.s $(wildcard src/*/*.s)
 OSRC 	= $(patsubst %.s, %.o, $(ASRC))
 #OUT	= kernel
-SOURCES = $(CSRC) $(0SRC)
+SOURCES = $(OSRC) $(CSRC)
+OBJECTS = $(patsubst %.c, %.o, $(SOURCES))
 
-#SOURCES=boot.o 								\
-	system.o 							\
-	main.o								\
-	irq.o								\
-	isr.o 								\
-	dt.o								\
-	gdt.o 								\
-	idt.o			 					\
-	timer.o								\
-	kheap.o 							\
-	paging.o 							\
-	ordered_array.o 						\
-	task.o 								\
-	process.o 							\
-	syscall.o							\
-	debug.o 							\
-	scrn.o								\
-
-CFLAGS = -m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector
+CFLAGS = -m32 -nostdlib -nostdinc -Wall -fno-builtin -fno-stack-protector -Iinclude -Tlink.ld
 LDFLAGS= -melf_i386 -Tlink.ld
 ASFLAGS= -felf
-INCLUDES = -I "include"
+OUTPUT=kernel
 
-all: $(SOURCES) link run
+all: clean $(OBJECTS) link
 
 clean:
-	-rm *.o kernel
+	-rm src/*.o src/*/*.o kernel
 
 link:
-	ld $(LDFLAGS) -o kernel $(SOURCES)
+	ld $(LDFLAGS) -o kernel $(OBJECTS)
 
 run:
-	fcs-qemu-run-kernel -kernel kernel -bootdisk ../floppy.img
+	fcs-qemu-run-kernel -kernel kernel -bootdisk floppy.img
+
+print-%: ; @echo $* = $($*)
 
 .s.o:
 	nasm $(ASFLAGS) $<
