@@ -34,6 +34,7 @@ void initialise_tasking()
   move_stack(0xE0000000, 0x2);
   // Initialise the first task (kernel task)
   current_task = create_init_task();
+  printf("Init Task: [%x]\n", current_task);
   ready_queue = current_task;
 
   // Reenable interrupts.
@@ -76,6 +77,10 @@ void move_stack(unsigned int base, unsigned int num_frames)
 
   // Backtrace through the original stack, copying new values into the new stack.
   int step = sizeof(int);
+  printf("old_esp = %x\n", old_esp);
+  printf("initial_esp = %x\n", initial_esp);
+  printf("new_esp = %x\n", new_esp);
+  printf("offset = %x\n", offset);
   for(i = base; i > base - size; i -= step) {
     unsigned int tmp = * (unsigned int*)i;
     // If the value of tmp is inside the range of the old stack, assume it is a base pointer
@@ -83,12 +88,12 @@ void move_stack(unsigned int base, unsigned int num_frames)
     // base pointers or not.
     if (( old_esp < tmp) && (tmp < initial_esp))
     {
+      printf("tmp = %x\n", tmp); 
       tmp = tmp + offset;
       unsigned int *tmp2 = (unsigned int*)i;
       *tmp2 = tmp;
     }
   }
-
   // Change stacks.
   asm volatile("mov %0, %%esp" : : "r" (new_esp));
   asm volatile("mov %0, %%ebp" : : "r" (new_ebp));
@@ -107,13 +112,10 @@ void switch_task()
   asm volatile("mov %%ebp, %0" : "=r"(ebp));
 
   eip = read_eip();
-  printf("EIP CHECK: [%x]\n", eip);
-  //printf("RESP: [%x]\n", esp);
-  //printf("RBP: [%x]\n", ebp);
-  // Have we just switched tasks?
-  if (eip == 0x12345)
+  //Have we just switched tasks?
+  if (eip == 0x12345) {
     return;
-
+  }
   // No, we didn't switch tasks. Let's save some register values and switch.
   current_task->eip = eip;
   current_task->esp = esp;
@@ -128,15 +130,13 @@ void switch_task()
   eip = current_task->eip;
   esp = current_task->esp;
   ebp = current_task->ebp;
-  printf("Running Task : [%x]\n", current_task);
   // Make sure the memory manager knows we've changed page directory.
   current_directory = current_task->page_directory;
 
   // Change our kernel stack over.
-  set_kernel_stack(current_task->kernel_stack);
+  // set_kernel_stack(current_task->kernel_stack);
 
   unsigned int physical = get_physical((unsigned int *)current_directory->phys_tables);
-  printf("TASK EIP: [%x]\n", eip);
   perform_task_switch(eip, physical, ebp, esp);
 }
 
@@ -146,7 +146,8 @@ task_t *create_init_task()
   task->page_directory = current_directory;
   task->id = process_count++;
   task->esp = task->ebp = task->eip = task->next = 0;
-  task->kernel_stack = initial_esp + 1;
+  task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE;
+  printf("KINIT STACK -> %x\n", task->kernel_stack);
   return task;
 }
 
@@ -170,7 +171,8 @@ int fork()
   // Clone the address space.
   task_t *child = create_task();
 
-  // printf("FORKED CHILD - [%x]\n", child);
+ // printf("Fork Task: [%x]\n", child);
+  //printf("FORKED CHILD - [%x]\n", child);
 
   // Add it to the end of the ready queue.
   task_t *tmp_task = (task_t*)ready_queue;
@@ -180,8 +182,9 @@ int fork()
   tmp_task->next = child;
   // printf("TMP TSAK? %x\n", tmp_task);
   // This will be the entry point for the new process.
+  printf("Above EIP: [%x]\n", read_eip()); 
   unsigned int eip = read_eip();
-  // printf("FORK EIP: [%x]\n", eip);
+  printf("Below Eip: [%x]\n", eip);
   // We could be the parent or the child here - check.
   if (current_task == parent_task)
   {
@@ -192,22 +195,16 @@ int fork()
     child->ebp = ebp;
     child->eip = eip;
 
-
-    // puts("PARENT RET \n");
-
-    // printf("Main EIP? [%x]\n", child->eip);
+    //puts("PARENT RET \n");
+    //printf("Main EIP? [%x]\n", child->eip);
 
     asm volatile("sti");
     return child->id;
   }
   else
   {
-    puts("Child RET \n");
-    // We are the child.
-    //
     return 0;
   }
-
 }
 
 int getpid()

@@ -16,7 +16,7 @@ unsigned int initial_esp;
 int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
 {
   initial_esp = initial_stack;
-
+ 
   /* Descriptor Tables */
   gdt_install();
   idt_install();
@@ -26,8 +26,7 @@ int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
   /* Video Output */
   init_video();
   /* Support Tasking */
-  timer_install(100);
-  asm volatile("sti");
+  timer_install(1);
 
   initialise_paging();
   initialise_tasking();
@@ -37,9 +36,9 @@ int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
 
   // switch_to_user_mode();
   int pid = fork();
-  printf("pid : [%x]\n", pid);
-
-  puts("Hello World");
-
+  if (pid != 0)
+    printf("pid : [%x]\n", pid);
+  else
+    halt("Returned 2 chikd");
   return 0;
 }

@@ -62,7 +62,7 @@ void irq_handler(regs *regs)
 {
   /* This is a blank function pointer */
   // - 32
-  isr_t handler = irq_routines[regs->int_no];
+  isr_t handler = irq_routines[regs->int_no - 32];
   if (handler) {
     handler(regs);
   }
