@@ -10,7 +10,6 @@ OSRC 	= $(patsubst %.s, %.o, $(ASRC))
 SOURCES = $(OSRC) $(CSRC)
 OBJECTS = $(patsubst %.c, %.o, $(SOURCES))
 
-<<<<<<< HEAD
 CFLAGS = -m32 -nostdlib -nostdinc -ggdb -Wall -fno-builtin -fno-stack-protector -Iinclude -Tlink.ld
 LDFLAGS= -melf_i386 -Tlink.ld
 ASFLAGS= -felf
