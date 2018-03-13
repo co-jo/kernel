@@ -73,3 +73,8 @@ void print_user_mode_flag()
   printf("CR0 [%b]\n", user_flag);
   printf("USER MODE FLAG [%x]\n", user_flag&0x01);
 }
+
+void *gdb(void *ptr)
+{
+  return ++ptr;
+}

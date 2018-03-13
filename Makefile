@@ -10,7 +10,7 @@ OSRC 	= $(patsubst %.s, %.o, $(ASRC))
 SOURCES = $(OSRC) $(CSRC)
 OBJECTS = $(patsubst %.c, %.o, $(SOURCES))
 
-CFLAGS = -m32 -nostdlib -nostdinc -Wall -fno-builtin -fno-stack-protector -Iinclude -Tlink.ld
+CFLAGS = -m32 -nostdlib -nostdinc -ggdb -Wall -fno-builtin -fno-stack-protector -Iinclude -Tlink.ld
 LDFLAGS= -melf_i386 -Tlink.ld
 ASFLAGS= -felf
 OUTPUT=kernel
@@ -30,3 +30,6 @@ print-%: ; @echo $* = $($*)
 
 .s.o:
 	nasm $(ASFLAGS) $<
+
+gdb:
+	qemu-system-i386 -hda floppy.img -kernel kernel -s -S

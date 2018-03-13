@@ -26,7 +26,7 @@ int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
   /* Video Output */
   init_video();
   /* Support Tasking */
-  timer_install(1);
+  timer_install(18);
 
   initialise_paging();
   initialise_tasking();
