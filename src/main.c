@@ -39,6 +39,7 @@ int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
   if (pid != 0)
     printf("pid : [%x]\n", pid);
   else
-    halt("Returned 2 chikd");
+    printf("pid: [%x]\n", pid);
+  
   return 0;
 }

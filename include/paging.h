@@ -73,7 +73,7 @@ void direct_map(page_t *page, unsigned int address, int writeable);
 
 void alloc_page(page_t *page, int rw, int user);
 
-void alloc_table(page_directory_t *dir, int tid, int rw, int user);
+void alloc_table(page_directory_t *dest, int tid, int rw, int user);
 
 unsigned int *create_frame_index();
 
@@ -81,7 +81,7 @@ void direct_memory_map();
 
 void map_first_table();
 
-void enable_paging(unsigned int table_base);
+void enable_paging(page_directory_t *directory);
 
 unsigned int get_physical(unsigned int *address);
 

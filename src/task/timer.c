@@ -12,7 +12,6 @@ void timer_handler(regs *r)
   /* Every 18 clocks (approximately 1 second), we will
    *  display a message on the screen */
   timer_ticks++;
-  // printf("Timer Tick: %d\n", timer_ticks);
   if (timer_ticks % frequency == 0)
   {
     puts("One second has passed\n");

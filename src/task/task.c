@@ -31,9 +31,11 @@ void initialise_tasking()
   // Rather important stuff happening, no interrupts please!
   asm volatile("cli");
   // Relocate the stack so we know where it is.
-  move_stack(0xE0000000, 0x2);
   // Initialise the first task (kernel task)
+  move_stack(0xE0000000, 0x2);
+
   current_task = create_init_task();
+
   ready_queue = current_task;
 
   // Reenable interrupts.
@@ -137,7 +139,7 @@ void switch_task()
 task_t *create_init_task()
 {
   task_t *task = (task_t*)kmalloc(sizeof(task_t));
-  task->page_directory = current_directory;
+  task->page_directory = clone_directory(current_directory);
   task->id = process_count++;
   task->esp = task->ebp = task->eip = task->next = 0;
   task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE;

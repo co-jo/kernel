@@ -169,31 +169,32 @@ void initialise_paging()
   for (i = KHEAP_START; i < KHEAP_END; i += FRAME_SIZE) {
     page_t *page = get_page(i, kernel_directory, 1, 0);
   }
-
-  current_directory = kernel_directory;
-  enable_paging(current_directory->phys_tables);
+  enable_paging(kernel_directory);
 
   register_interrupt_handler(14, page_fault);
 
   create_heap(kheap, KHEAP_START, KHEAP_END, KHEAP_MAX, 0, 0);
-  // Enable Paging - Set Bit 31 in CR0 Register
+
+  current_directory = clone_directory(kernel_directory);
+  switch_page_directory(current_directory);
 }
 
 void switch_page_directory(page_directory_t *dir)
 {
   current_directory = dir;
-  asm volatile("mov %0, %%cr3":: "r"(dir->phys_tables));
+  unsigned int physical = get_physical(dir->phys_tables);
+  asm volatile("mov %0, %%cr3":: "r"(physical));
 }
-
 // Loads the base of our physical table, and set bit 32
-void enable_paging(unsigned int table_base)
+void enable_paging(page_directory_t *dir)
 {
+  current_directory = dir;
   unsigned int pg;
-  asm volatile("mov %0, %%cr3":: "r"(table_base));
+  unsigned int physical = dir->phys_tables;
+  asm volatile("mov %0, %%cr3":: "r"(physical));
   asm volatile("mov %%cr0, %0": "=r"(pg));
   asm volatile("mov %0, %%cr0":: "r"(pg|0x80000000));
 }
-
 
 page_t *get_page(unsigned int address, page_directory_t *dir, int rw, int user)
 {
@@ -205,9 +206,6 @@ page_t *get_page(unsigned int address, page_directory_t *dir, int rw, int user)
 
   // Table DNE
   if (!dir->tables[tid]) {
-   // printf("Allocating Table For [%x]\n", address);
-   // printf("Stats ; PID: [%x] - ", pid);
-   // printf("TID: [%x]\n", tid);
     // We need one frame & page to map the table to memoryk
     alloc_table(dir, tid, rw, user);
   }
@@ -270,12 +268,13 @@ void page_fault(regs *regs)
   printf("US?: [%x] ", us);
   printf("RS?: [%x] ", reserved);
   printf("IF?: [%x]\n", id);
+  halt("...");
 }
 
-static page_table_t *clone_table(page_table_t *src, int tid)
+void clone_table(page_directory_t *dest, page_table_t *src, int tid)
 {
-  alloc_table(current_directory, tid, 1, 1);
-  page_table_t *table = current_directory->tables[tid];
+  alloc_table(dest, tid, 1, 1);
+  page_table_t *table = dest->tables[tid];
   // For every entry in the table...
   int i;
   for (i = 0; i < TABLE_SIZE; i++) {
@@ -293,7 +292,12 @@ static page_table_t *clone_table(page_table_t *src, int tid)
       copy_page_physical(src->pages[i].frame*0x1000, table->pages[i].frame*0x1000);
     }
   }
-  return table;
+}
+
+void link_table(page_directory_t *dest, page_directory_t *src, int tid)
+{
+  dest->tables[tid] = src->tables[tid];
+  dest->phys_tables[tid] = src->phys_tables[tid];
 }
 
 page_directory_t *clone_directory(page_directory_t *src)
@@ -308,13 +312,12 @@ page_directory_t *clone_directory(page_directory_t *src)
   /* Link Kernel Tables, else copy */
   int i;
   for (i = 0; i < DIRECTORY_SIZE; i++) {
-    if (!src->tables[i]) continue;
-    if (kernel_directory->tables[i] == src->tables[i]) {
-      dir->tables[i] = src->tables[i];
-      dir->phys_tables[i] = src->phys_tables[i];
-    } else {
-      dir->tables[i] = clone_table(src->tables[i], i);
-    }
+    if (!src->tables[i])
+      continue;
+    if (kernel_directory->tables[i] == src->tables[i])
+      link_table(dir, src, i);
+    else
+      clone_table(dir, src->tables[i], i);
   }
   return dir;
 }
