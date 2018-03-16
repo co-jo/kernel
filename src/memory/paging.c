@@ -69,21 +69,6 @@ unsigned int first_frame()
   }
 }
 
-// Function to allocate a frame.
-void alloc_frame(page_t *page, int user, int writeable)
-{
-  if (page->frame != 0) return;
-  else
-  {
-    unsigned int frame = first_frame();
-    set_frame(frame);
-    page->present = 1;
-    page->rw = writeable;
-    page->user = user;
-    page->frame = frame;
-  }
-}
-
 // Function to deallocate a frame.
 void free_frame(page_t *page)
 {
@@ -111,11 +96,12 @@ unsigned int* create_frame_index()
   return address;
 }
 
-void direct_memory_map()
+void identity_map()
 {
   int i;
+  int mflags = flags(1, 1, 1);
   for (i = 0; i < placement_address + FRAME_SIZE; i += FRAME_SIZE) {
-    page_t *page =  get_page(i, kernel_directory, 1, 0);
+    page_t *page =  get_page(i, kernel_directory, mflags);
     if (i/FRAME_SIZE != page->frame) {
       printf("[%x] - ", i);
       printf("[%x]\n", page->frame);
@@ -124,6 +110,8 @@ void direct_memory_map()
   }
 }
 
+/* Purpose of this is to avoid altering the placement address 
+ * during the identity mappign */
 void map_first_table()
 {
   unsigned int phys;
@@ -131,18 +119,18 @@ void map_first_table()
   // Set page pointers to 0
   memset(table, 0, FRAME_SIZE);
   kernel_directory->tables[0] = phys;
-  kernel_directory->phys_tables[0] = phys | 0x07;
+  int pflags = flags(1, 1, 1);
+  kernel_directory->phys_tables[0] = phys | 0x7;
 
-  unsigned int frame = phys >> 12;    // Bits [32 - 12]
-  unsigned int tid = frame >> 10;        // Bits [32 - 22]
-  unsigned int pid = frame & 0x3FF;      // Bits [22 - 12]
+  unsigned int frame = phys >> 12;                        // Bits [32 - 12]
+  unsigned int tid = frame >> 10;                         // Bits [32 - 22]
+  unsigned int pid = frame & 0x3FF;                       // Bits [22 - 12]
 
   page_t *page = &kernel_directory->tables[tid]->pages[pid];
 
-  page->accessed = 1;
   page->present = 1;
-  page->rw = 0;
-  page->user = 0;
+  page->rw = 1;
+  page->user = 1;
   page->frame = frame;
 
   set_frame(page->frame);
@@ -162,21 +150,23 @@ void initialise_paging()
 
   // Manual allocation for first table
   map_first_table();
+  
   // 1:1 Mapping
-  direct_memory_map();
+  identity_map();
 
   int i = 0;
+  int kflags = flags(1, 1, 1);
   for (i = KHEAP_START; i < KHEAP_END; i += FRAME_SIZE) {
-    page_t *page = get_page(i, kernel_directory, 1, 0);
+    page_t *page = get_page(i, kernel_directory, kflags);
   }
+
   enable_paging(kernel_directory);
 
   register_interrupt_handler(14, page_fault);
-
   create_heap(kheap, KHEAP_START, KHEAP_END, KHEAP_MAX, 0, 0);
 
-  current_directory = clone_directory(kernel_directory);
-  switch_page_directory(current_directory);
+  page_directory_t *clone = clone_directory(kernel_directory);
+  switch_page_directory(clone);
 }
 
 void switch_page_directory(page_directory_t *dir)
@@ -196,31 +186,29 @@ void enable_paging(page_directory_t *dir)
   asm volatile("mov %0, %%cr0":: "r"(pg|0x80000000));
 }
 
-page_t *get_page(unsigned int address, page_directory_t *dir, int rw, int user)
+page_t *get_page(unsigned int address, page_directory_t *dir, int flags)
 {
   unsigned int offset = address & 0xFFF; // Bits [12 - 0]
   unsigned int frame = address >> 12;    // Bits [32 - 12]
   unsigned int tid = frame >> 10;        // Bits [32 - 22]
   unsigned int pid = frame & 0x3FF;      // Bits [22 - 12]
-  // Address of table pointer
 
   // Table DNE
   if (!dir->tables[tid]) {
     // We need one frame & page to map the table to memoryk
-    alloc_table(dir, tid, rw, user);
+    alloc_table(dir, tid, flags);
   }
 
   page_t *page = &dir->tables[tid]->pages[pid];
-
   if (page->present == 0) {
-    alloc_page(page, rw, user);
+    alloc_page(page, flags);
     return page;
   } else {
     return page;
   }
 }
 
-void alloc_table(page_directory_t *dir, int tid, int rw, int user)
+void alloc_table(page_directory_t *dir, int tid, int flags)
 {
   unsigned int phys;
   page_table_t *table = (page_table_t *)kmalloc_ap(sizeof(page_table_t), &phys);
@@ -228,13 +216,14 @@ void alloc_table(page_directory_t *dir, int tid, int rw, int user)
   memset(table, 0, FRAME_SIZE);
   // This table also needs to be mapped to a frame;
   dir->tables[tid] = table;
-  dir->phys_tables[tid] = phys | 0x7; // PRESENT, RW, US. //
+  dir->phys_tables[tid] = phys | 0x7; //flags;
 
-  page_t *page = get_page(table, dir, rw, user);
+  // This check should be done during kmalloc
+  // page_t *page = get_page(table, dir, flags);
 }
 
 // This assumes that a table exists
-void alloc_page(page_t *page, int rw, int user)
+void alloc_page(page_t *page, int flags)
 {
   if (page->frame) {
     return;
@@ -243,21 +232,23 @@ void alloc_page(page_t *page, int rw, int user)
     int frame = first_frame();
     set_frame(frame);
     page->frame = frame;
+    //page->present = (flags & 0x1) ? 1 : 0;
+    //page->rw = (flags & 0x2) ? 1 : 0;
+    //page->user = (flags & 0x4) ? 1 : 0;
     page->present = 1;
-    page->rw = rw;
-    page->user = user;
-    page->accessed = 1;
+    page->rw = 1;
+    page->user = 1;
   }
 }
 
-void page_fault(regs *regs)
+void page_fault(regs_t *regs)
 {
   // The faulting address is stored in the CR2 register.
   unsigned int faulting_address;
   asm volatile("mov %%cr2, %0" : "=r" (faulting_address));
 
   int present = (regs->err_code & 0x1) ? 1 : 0;     // Page not present
-  int rw = (regs->err_code & 0x2);                  // Write operation?
+  int rw = (regs->err_code & 0x2) ? 1 : 0;          // Write operation?
   int us = (regs->err_code & 0x4) ? 1 : 0;          // Processor was in user-mode?
   int reserved = (regs->err_code & 0x8) ? 1 : 0;    // Overwritten CPU-reserved bits of page entry?
   int id = (regs->err_code & 0x10) ? 1 : 0;         // Caused by an instruction fetch?
@@ -273,23 +264,21 @@ void page_fault(regs *regs)
 
 void clone_table(page_directory_t *dest, page_table_t *src, int tid)
 {
-  alloc_table(dest, tid, 1, 1);
+  // Get page of where the
+  page_t* source_table = get_page(src, current_directory, 0);
+  int tflags = read_flags(source_table);
+  alloc_table(dest, tid, tflags);
+
   page_table_t *table = dest->tables[tid];
   // For every entry in the table...
   int i;
   for (i = 0; i < TABLE_SIZE; i++) {
     // If the source entry has a frame associated with it...
     if (src->pages[i].frame) {
-      // If not linked, is user page
-      alloc_page(&table->pages[i], 1, 1);
-      // Clone the flags from source to destination.
-      if (src->pages[i].present) table->pages[i].present = 1;
-      if (src->pages[i].rw) table->pages[i].rw = 1;
-      if (src->pages[i].user) table->pages[i].user = 1;
-      if (src->pages[i].accessed) table->pages[i].accessed = 1;
-      if (src->pages[i].dirty) table->pages[i].dirty = 1;
+      int sflags = read_flags(&src->pages[i]);
+      alloc_page(&table->pages[i], sflags);
       // Physically copy the data across. This function is in process.s.
-      copy_page_physical(src->pages[i].frame*0x1000, table->pages[i].frame*0x1000);
+      copy_page_physical(src->pages[i].frame*FRAME_SIZE, table->pages[i].frame*0x1000);
     }
   }
 }
@@ -314,18 +303,21 @@ page_directory_t *clone_directory(page_directory_t *src)
   for (i = 0; i < DIRECTORY_SIZE; i++) {
     if (!src->tables[i])
       continue;
-    if (kernel_directory->tables[i] == src->tables[i])
-      link_table(dir, src, i);
-    else
-      clone_table(dir, src->tables[i], i);
+    if (kernel_directory->tables[i] == src->tables[i]) {
+      link_table(dir, src, i); // puts("linking..\n"); 
+    }
+    else {
+      clone_table(dir, src->tables[i], i); // puts("cloning..\n");
+    }
   }
   return dir;
 }
 
-unsigned int get_physical(unsigned int *virtual_address)
+// Get Physical FRAME
+unsigned int get_physical(unsigned int *virtual)
 {
-  page_t *page = get_page(virtual_address, current_directory, 0, 0);
-  return page->frame * FRAME_SIZE;
+  page_t *page = get_page(virtual, current_directory, 0); 
+  return page->frame * FRAME_SIZE; /* + (virtual & 0xFFF) = Complete Address */
 }
 
 void print_table(int table_id)
@@ -337,3 +329,24 @@ void print_table(int table_id)
       printf("Page: %x\n", current_directory->tables[table_id]->pages[i]);
   }
 }
+
+int read_flags(page_t *page)
+{
+  int flags = 0;
+  if (page->present) flags |= 1;
+  if (page->rw) flags |= 2;
+  if (page->user) flags |= 4;
+  if (page->accessed) flags |= 8;
+  if (page->dirty) flags |= 16;
+  return flags;
+}
+
+int flags(int present, int rw, int user)
+{
+  int flags = 0;
+  if (present) flags |= 1;
+  if (rw) flags |= 2;
+  if (user) flags |= 4;
+  return flags;
+}
+

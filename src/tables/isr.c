@@ -46,9 +46,10 @@ void isr_install()
   idt_set_gate(29, (unsigned)isr29, 0x08, 0x8E);
   idt_set_gate(30, (unsigned)isr30, 0x08, 0x8E);
   idt_set_gate(31, (unsigned)isr31, 0x08, 0x8E);
+  idt_set_gate(128, (unsigned)isr128, 0x08, 0x8E);
 }
 
-unsigned char *exception_messages[] =
+char *exception_messages[] =
 {
   "Division By Zero",
   "Debug",
@@ -88,7 +89,7 @@ unsigned char *exception_messages[] =
 };
 
 // This gets called from our ASM interrupt handler stub.
-void isr_handler(regs *regs)
+void isr_handler(regs_t *regs)
 {
   isr_t handler = interrupt_handlers[regs->int_no];
   if (handler) {
@@ -97,6 +98,6 @@ void isr_handler(regs *regs)
   else {
     dump_regs(regs);
     puts(exception_messages[regs->int_no]);
-    halt("Sytsem Halted.");
+    halt(" : Sytsem Halted.\n");
   }
 }

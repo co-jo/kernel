@@ -5,18 +5,20 @@
 #include "isr.h"
 #include "task.h"
 #include "debug.h"
-
-static void syscall_handler(regs *regs);
-
+#include "scrn.h"
+#include "system.h"
 
 DEFN_SYSCALL0(fork, 0);
+DEFN_SYSCALL1(halt, 1, const char*);
+DEFN_SYSCALL2(printf, 2, const char*, int);
 
-static void *syscalls[1] =
+static void *syscalls[3] =
 {
-
-    &fork
+    &fork,
+    &halt,
+    &printf
 };
-unsigned int num_syscalls = 1;
+unsigned int num_syscalls = 3;
 
 void initialise_syscalls()
 {
@@ -24,7 +26,7 @@ void initialise_syscalls()
     register_interrupt_handler (0x80, &syscall_handler);
 }
 
-void syscall_handler(regs *regs)
+void syscall_handler(regs_t *regs)
 {
     // Firstly, check if the requested syscall number is valid.
     // The syscall number is found in EAX.

@@ -7,6 +7,7 @@
 #include "system.h"
 
 void initialise_syscalls();
+void syscall_handler(regs_t *regs);
 
 #define DECL_SYSCALL0(fn) int syscall_##fn();
 #define DECL_SYSCALL1(fn,p1) int syscall_##fn(p1);
@@ -64,5 +65,6 @@ int syscall_##fn(P1 p1, P2 p2, P3 p3, P4 p4, P5 p5) \
 }
 
 DECL_SYSCALL0(fork);
-
+DECL_SYSCALL1(halt, const char *);
+DECL_SYSCALL2(printf, const char *, int arg);
 #endif

@@ -3,20 +3,7 @@
 #include "kheap.h"
 #include "paging.h"
 
-//#define PRINT_STACK(num) \
-//  do { \
-//    unsigned int esp; \
-//    asm volatile("mov %%esp, %0" : "=r"(esp)); \
-//    int i; \
-//    int *ptr; \
-//    for (i = 0; i < num*4; i += 4) { \
-//      ptr = (int*) esp+i;
-//      printf("STACK[%x] = ", ptr); \
-//      printf("%x\n", *ptr); \
-//    } \
-//  } while (0)
-
-void debug_regs(regs *regs)
+void debug_regs(regs_t *regs)
 {
   line();
   printf("DS[%x] : ", regs->ds);
@@ -28,7 +15,7 @@ void debug_regs(regs *regs)
   line();
 }
 
-void dump_regs(regs *regs)
+void dump_regs(regs_t *regs)
 {
   line();
  // printf("GS[%x]\n", regs->gs);
@@ -45,6 +32,7 @@ void dump_regs(regs *regs)
   printf("EAX[%x]\n", regs->eax);
   printf("INT[%x]\n", regs->int_no);
   printf("ERR[%b]\n", regs->err_code);
+  
   unsigned int* ptr = (unsigned int *)regs->eip;
   printf("EIP[%x]\n", *ptr);
   printf("CS[%x]\n", regs->cs);

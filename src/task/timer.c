@@ -7,15 +7,16 @@
 int timer_ticks = 0;
 int frequency = 0;
 
-void timer_handler(regs *r)
+void timer_handler(regs_t *r)
 {
   /* Every 18 clocks (approximately 1 second), we will
    *  display a message on the screen */
   timer_ticks++;
+  //puts("Tick..\n");
   if (timer_ticks % frequency == 0)
   {
-    puts("One second has passed\n");
-    gdb(0);
+    timer_ticks = 0;
+    puts("Switch Task..\n");
     switch_task();
   }
 }

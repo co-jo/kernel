@@ -25,66 +25,42 @@ typedef struct page_table
 
 typedef struct page_directory
 {
-    /**
-       Array of pointers to pagetables.
-    **/
     page_table_t *tables[1024];
-    /**
-       Array of pointers to the pagetables above, but gives their *physical*
-       location, for loading into the CR3 register.
-    **/
     unsigned int phys_tables[1024];
 } page_directory_t;
 
-/**
-   Sets up the environment, page directories etc and
-   enables paging.
-**/
-void initialise_paging();
 
-/**
-   Causes the specified page directory to be loaded into the
-   CR3 register.
-**/
+int flags(int present, int rw, int user);
+int read_flags(page_t *page);
+
+void identity_map();
+
+void map_first_table();
+
+/* Load Page Directory into CR3 */
 void switch_page_directory(page_directory_t *directory);
 
-/**
-   Retrieves a pointer to the page required.
-   If make == 1, if the page-table in which this page should
-   reside isn't created, create it!
-**/
-page_t *get_page(unsigned int address, page_directory_t *dir, int rw, int user);
-
-/**
-   Handler for page faults.
-**/
-void page_fault(regs *regs);
-
-/**
-   Makes a copy of a page directory.
-**/
 page_directory_t *clone_directory(page_directory_t *src);
 
 page_directory_t *create_initial_directory();
 
-unsigned int *create_frame_index();
+/* Init table if DNE, then go back and init requested page if DNE  */
+page_t *get_page(unsigned int address, page_directory_t *dir, int flags);
 
-void direct_map(page_t *page, unsigned int address, int writeable);
+void alloc_page(page_t *page, int flags);
 
-void alloc_page(page_t *page, int rw, int user);
+void page_fault(regs_t *regs);
 
-void alloc_table(page_directory_t *dest, int tid, int rw, int user);
+void clone_table(page_directory_t *dest, page_table_t *src, int tid);
 
-unsigned int *create_frame_index();
-
-void direct_memory_map();
-
-void map_first_table();
+void alloc_table(page_directory_t *dest, int tid, int flags);
 
 void enable_paging(page_directory_t *directory);
 
 unsigned int get_physical(unsigned int *address);
 
 unsigned int first_frame();
+
+unsigned int *create_frame_index();
 
 #endif

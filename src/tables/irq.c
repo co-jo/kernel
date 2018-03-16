@@ -58,17 +58,16 @@ void irq_install()
   idt_set_gate(47, (unsigned)irq15, 0x08, 0x8E);
 }
 
-void irq_handler(regs *regs)
+void irq_handler(regs_t *regs)
 {
-  /* This is a blank function pointer */
-  // - 32
-  isr_t handler = irq_routines[regs->int_no - 32];
-  if (handler) {
-    handler(regs);
-  }
-
+  // switch_task does not return atm...
   if (regs->int_no >= 40) {
     outportb(0xA0, 0x20);
   }
   outportb(0x20, 0x20);
+  /* This is a blank function pointer */
+  isr_t handler = irq_routines[regs->int_no - 32];
+  if (handler) {
+    handler(regs);
+  }
 }

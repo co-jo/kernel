@@ -16,7 +16,7 @@ unsigned int initial_esp;
 int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
 {
   initial_esp = initial_stack;
- 
+
   /* Descriptor Tables */
   gdt_install();
   idt_install();
@@ -32,14 +32,17 @@ int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
   initialise_tasking();
 
   /* Support RING3 */
-  // initialise_syscalls();
+  initialise_syscalls();
+  
+  switch_to_user_mode();
 
-  // switch_to_user_mode();
-  int pid = fork();
-  if (pid != 0)
-    printf("pid : [%x]\n", pid);
-  else
-    printf("pid: [%x]\n", pid);
+  int pid = syscall_fork();
+  
+  if (pid) {
+    syscall_printf("Child Task: [%x]\n", pid);
+  } else {
+    halt("...");
+  }
   
   return 0;
 }

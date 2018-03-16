@@ -24,7 +24,7 @@ mboot:
                                 ; 4-byte boundary in your kernel file
     dd  MBOOT_HEADER_FLAGS      ; How GRUB should load your file / settings
     dd  MBOOT_CHECKSUM          ; To ensure that the above values are correct
-    
+
     dd  mboot                   ; Location of this descriptor
     dd  code                    ; Start of kernel '.text' (code) section.
     dd  bss                     ; End of kernel '.data' section.
@@ -38,7 +38,7 @@ start:
     ; Load multiboot information:
     push esp
     push ebx
-    
+
     ; Execute the kernel:
     cli                         ; Disable interrupts.
     call main                   ; call our main() function.

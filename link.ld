@@ -11,6 +11,7 @@ SECTIONS
     {
         code = .; _code = .; __code = .;
         *(.text)
+        *(.rodata*)
         . = ALIGN(4096);
     }
 
@@ -18,7 +19,6 @@ SECTIONS
     {
         data = .; _data = .; __data = .;
         *(.data)
-        *(.rodata)
         . = ALIGN(4096);
     }
 

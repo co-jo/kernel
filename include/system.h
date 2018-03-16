@@ -34,9 +34,9 @@ typedef struct regs
   unsigned int edi, esi, ebp, esp, ebx, edx, ecx, eax;
   unsigned int int_no, err_code;
   unsigned int eip, cs, eflags, useresp, ss;
-} regs;
+} regs_t;
 
-typedef void (*isr_t)(regs*);
+typedef void (*isr_t)(regs_t*);
 
 /* MAIN.C */
 extern void *memcpy(void *dest, const void *src, size_t count);

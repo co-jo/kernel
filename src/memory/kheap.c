@@ -15,14 +15,15 @@ extern page_directory_t *kernel_directory;
 extern page_directory_t *current_directory;
 heap_t *kheap;
 
-unsigned int kmalloc_int(unsigned int sz, int align, unsigned int *phys)
+unsigned int kmalloc_int(unsigned int size, int align, unsigned int *phys)
 {
   if (kheap->initialized == 1)
   {
-    unsigned int addr = alloc(sz, (unsigned char)align, kheap);
+    unsigned int addr = alloc(size, (unsigned char)align, kheap);
     if (phys != 0)
     {
-      page_t *page = get_page(addr, kernel_directory, 1, 0);
+      int pflags = flags(1, 1, 1);
+      page_t *page = get_page(addr, kernel_directory, pflags);
       // Assumes frame has already been mapped (as heap exists)
       *phys = page->frame*FRAME_SIZE + (addr & 0xFFF);
     }
@@ -33,14 +34,11 @@ unsigned int kmalloc_int(unsigned int sz, int align, unsigned int *phys)
     if (align && not_aligned(placement_address)) {
       placement_address = align_to_next(placement_address);
     }
-
     unsigned int current_pos = placement_address;
     if (phys) {
       *phys = current_pos;
     }
-    placement_address += sz;
-    // Not sure if this is risky..
-    // memset(current_pos, 0, sz);
+    placement_address += size;
     return current_pos;
   }
 }
@@ -104,7 +102,7 @@ static void expand(unsigned int new_size, heap_t *heap)
   unsigned int i = old_size;
   while (i < new_size)
   {
-    get_page(heap->start_address+i, kernel_directory, 1, 0);
+    get_page(heap->start_address+i, kernel_directory, flags(1, 0, 0));
     i += FRAME_SIZE;
   }
   heap->end_address = heap->start_address+new_size;
@@ -127,7 +125,7 @@ static unsigned int contract(unsigned int new_size, heap_t *heap)
   unsigned int i = old_size - 0x1000;
   while (new_size < i)
   {
-    free_frame(get_page(heap->start_address+i, kernel_directory, 1, 0));
+    free_frame(get_page(heap->start_address+i, kernel_directory, flags(1, 0, 0)));
     i -= 0x1000;
   }
 
@@ -216,7 +214,6 @@ unsigned int alloc(unsigned int size, unsigned char page_align, heap_t *heap)
 
   if (iterator == -1) // If we didn't find a suitable hole
   {
-    puts("Iteratior - 1");
     // Save some previous data.
     unsigned int old_length = heap->end_address - heap->start_address;
     unsigned int old_end_address = heap->end_address;

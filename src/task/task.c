@@ -54,8 +54,9 @@ void move_stack(unsigned int base, unsigned int num_frames)
   unsigned int i;
   unsigned int size = num_frames * FRAME_SIZE;
   // Allocate some space for the new stack.
+  int sflags = flags(1, 1, 1);
   for(i = base - size; i <= base; i += FRAME_SIZE) {
-    get_page(i, current_directory, 1, 0);
+    get_page(i, current_directory, sflags);
   }
 
   // Flush the TLB by reading and writing the page directory address again.
@@ -104,19 +105,6 @@ void switch_task()
   // Read esp, ebp now for saving later on.
   unsigned int esp, ebp, eip;
 
-  asm volatile("mov %%esp, %0" : "=r"(esp));
-  asm volatile("mov %%ebp, %0" : "=r"(ebp));
-
-  eip = read_eip();
-  //Have we just switched tasks?
-  if (eip == 0x12345) {
-    return;
-  }
-  // No, we didn't switch tasks. Let's save some register values and switch.
-  current_task->eip = eip;
-  current_task->esp = esp;
-  current_task->ebp = ebp;
-
   // Getinitialise the next task to run.
   current_task = current_task->next;
 
@@ -132,14 +120,14 @@ void switch_task()
   // Change our kernel stack over.
   set_kernel_stack(current_task->kernel_stack);
 
-  unsigned int physical = get_physical((unsigned int *)current_directory->phys_tables); 
+  unsigned int physical = get_physical(current_directory->phys_tables);
   perform_task_switch(eip, physical, ebp, esp);
 }
 
 task_t *create_init_task()
 {
   task_t *task = (task_t*)kmalloc(sizeof(task_t));
-  task->page_directory = clone_directory(current_directory);
+  task->page_directory = current_directory;
   task->id = process_count++;
   task->esp = task->ebp = task->eip = task->next = 0;
   task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE;
@@ -150,6 +138,7 @@ task_t *create_task()
 {
   task_t *task = (task_t*)kmalloc(sizeof(task_t));
   task->page_directory = clone_directory(current_directory);
+  // printf("Child Dir [%x]\n", task->page_directory->phys_tables);
   task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE;
   task->id = process_count++;
   task->esp = task->ebp = task->eip = task->next = 0;
@@ -162,7 +151,6 @@ int fork()
   asm volatile("cli");
   // Take a pointer to this process' task struct for later reference.
   task_t *parent_task = (task_t*)current_task;
-
   // Clone the address space.
   task_t *child = create_task();
 
@@ -172,7 +160,7 @@ int fork()
     tmp_task = tmp_task->next;
   }
   tmp_task->next = child;
-  // printf("TMP TSAK? %x\n", tmp_task);
+
   // This will be the entry point for the new process.
   unsigned int eip = read_eip();
 
@@ -180,12 +168,9 @@ int fork()
   if (current_task == parent_task)
   {
     // We are the parent, so set up the esp/ebp/eip for our child.
-    unsigned int esp; asm volatile("mov %%esp, %0" : "=r"(esp));
-    unsigned int ebp; asm volatile("mov %%ebp, %0" : "=r"(ebp));
-    child->esp = esp;
-    child->ebp = ebp;
+    asm volatile("mov %%esp, %0" : "=r"(child->esp));
+    asm volatile("mov %%ebp, %0" : "=r"(child->ebp));
     child->eip = eip;
-
     asm volatile("sti");
     return child->id;
   }
