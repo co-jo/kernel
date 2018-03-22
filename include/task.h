@@ -11,12 +11,13 @@
 // This structure defines a 'task' - a process.
 typedef struct task
 {
-    int id;                // Process ID.
-    unsigned int esp, ebp;       // Stack and base pointers.
-    unsigned int eip;            // Instruction pointer.
-    page_directory_t *page_directory; // Page directory.
-    unsigned int kernel_stack;
-    struct task *next;     // The next task in a linked list.
+    int id;                               // Process ID.
+    unsigned int esp, ebp;                // Stack and base pointers.
+    unsigned int eip;                     // Instruction pointer.
+    page_directory_t *page_directory;     // Page directory.
+    unsigned int kernel_stack;            // SYSCall stack
+    unsigned int stack;                   // Main Stack
+    struct task *next;                    // The next task in a linked list.
 } task_t;
 
 // Initialises the tasking system.
@@ -27,6 +28,8 @@ void switch_task();
 
 // Forks the current process, spawning a new one with a different
 // memory space.
+task_t *kfork();
+
 int fork();
 
 // Causes the current process' stack to be forcibly moved to a new location.

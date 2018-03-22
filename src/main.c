@@ -33,16 +33,18 @@ int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
 
   /* Support RING3 */
   initialise_syscalls();
-  
-  switch_to_user_mode();
 
-  int pid = syscall_fork();
-  
+  //switch_to_user_mode();
+
+  int pid = fork();
+
   if (pid) {
-    syscall_printf("Child Task: [%x]\n", pid);
+    printf("Child Task: [%x]\n", pid);
   } else {
-    halt("...");
+    printf("In Child RET %x \n", 0x0);
+    cli("...");
   }
-  
+
+  halt();
   return 0;
 }

@@ -48,7 +48,7 @@ irq_stub:
     push eax
 
     call irq_handler
- 
+
     pop eax
     pop gs
     pop fs

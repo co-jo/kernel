@@ -1,0 +1,6 @@
+Remote debugging using :1234
+0x0000fff0 in ?? ()
+Continuing.
+
+Breakpoint 1, fork () at src/task/task.c:151
+151	  asm volatile("cli");

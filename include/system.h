@@ -24,6 +24,7 @@
 
 // KSTACK
 #define KERNEL_STACK_SIZE   0x500
+#define STACK_START         0xE0000000
 
 typedef int size_t;
 
@@ -50,6 +51,14 @@ extern void outportb (unsigned short _port, unsigned char _data);
 // extern void keyboard_install();
 
 /* HALT */
-void halt(char *message);
+void halt();
+void cli(char *message);
+
+// MACROS
+#define RD_EBP(MEM) ({ asm volatile("mov %%ebp, %0":"=r"(MEM)); })
+#define RD_ESP(MEM) ({ asm volatile("mov %%esp, %0":"=r"(MEM)); })
+
+#define WT_EBP(MEM) ({ asm volatile("mov %0, %%ebp"::"r"(MEM)); })
+#define WT_ESP(MEM) ({ asm volatile("mov %0, %%esp"::"r"(MEM)); })
 
 #endif

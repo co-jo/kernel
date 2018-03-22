@@ -12,7 +12,6 @@ void timer_handler(regs_t *r)
   /* Every 18 clocks (approximately 1 second), we will
    *  display a message on the screen */
   timer_ticks++;
-  //puts("Tick..\n");
   if (timer_ticks % frequency == 0)
   {
     timer_ticks = 0;

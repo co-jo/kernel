@@ -56,7 +56,7 @@ extern isr_handler
 ; up for kernel mode segments, calls the C-level fault handler,
 ; and finally restores the stack frame.
 isr_stub:  ; pops 5 things at once: CS, EIP, EFLAGS, SS, and ESP
-   
+
     pusha                    ; Pushes edi,esi,ebp,esp,ebx,edx,ecx,eax
     push ds
     push es
@@ -72,7 +72,7 @@ isr_stub:  ; pops 5 things at once: CS, EIP, EFLAGS, SS, and ESP
     push eax
 
     call isr_handler
- 
+
     pop eax
     pop gs
     pop fs

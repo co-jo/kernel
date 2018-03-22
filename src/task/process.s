@@ -5,15 +5,14 @@ read_eip:
 
 [GLOBAL perform_task_switch]
 perform_task_switch:
-    cli;
-    mov ecx, [esp+4]   ; EIP
-    mov eax, [esp+8]   ; physical address of current directory
-    mov ebp, [esp+12]  ; EBP
-    mov esp, [esp+16]  ; ESP
+    cli                ;
+    mov eax, [esp+4]   ; physical address of current directory
+    mov ebp, [esp+8]   ; EBP
+    mov esp, [esp+12]  ; ESP
     mov cr3, eax       ; set the page directory
-    ;mov eax, 0x12345   ;
+    ;mov eax, 0x12345  ;
     sti                ;
-    jmp ecx
+    ret                ;
 
 [GLOBAL copy_page_physical]
 copy_page_physical:

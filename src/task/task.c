@@ -21,7 +21,7 @@ extern unsigned int initial_esp;
 extern unsigned int read_eip();
 extern heap_t *kheap;
 
-extern void perform_task_switch(unsigned int, unsigned int, unsigned int, unsigned int);
+extern void perform_task_switch(unsigned int, unsigned int, unsigned int);
 
 // The next available process ID.
 int process_count = 1;
@@ -32,10 +32,9 @@ void initialise_tasking()
   asm volatile("cli");
   // Relocate the stack so we know where it is.
   // Initialise the first task (kernel task)
-  move_stack(0xE0000000, 0x2);
 
   current_task = create_init_task();
-
+  move_stack(0xE0000000, 0x2);
   ready_queue = current_task;
 
   // Reenable interrupts.
@@ -65,8 +64,8 @@ void move_stack(unsigned int base, unsigned int num_frames)
   // Old ESP and EBP, read from registers.
   unsigned int old_esp;
   unsigned int old_ebp;
-  asm volatile("mov %%ebp, %0" : "=r" (old_ebp));
-  asm volatile("mov %%esp, %0" : "=r" (old_esp));
+  RD_ESP(old_esp);
+  RD_ESP(old_ebp);
 
   // Offset to add to old stack addresses to get a new stack address.
   unsigned int offset = base - initial_esp;
@@ -92,18 +91,20 @@ void move_stack(unsigned int base, unsigned int num_frames)
     }
   }
   // Change stacks.
-  asm volatile("mov %0, %%esp" : : "r" (new_esp));
-  asm volatile("mov %0, %%ebp" : : "r" (new_ebp));
+  WT_EBP(new_ebp);
+  WT_ESP(new_esp);
 }
 
+// We enter this func as a thread, therefore we want to reclaim the stack and leave
+// as if it was never switched. The eip is implict in the return;
 void switch_task()
 {
   // If we haven't initialised tasking yet, just return.
   if (!current_task)
     return;
 
-  // Read esp, ebp now for saving later on.
-  unsigned int esp, ebp, eip;
+  RD_EBP(current_task->ebp);
+  RD_ESP(current_task->esp);
 
   // Getinitialise the next task to run.
   current_task = current_task->next;
@@ -111,17 +112,12 @@ void switch_task()
   // If we fell off the end of the linked list start again at the beginning.
   if (!current_task) current_task = ready_queue;
 
-  eip = current_task->eip;
-  esp = current_task->esp;
-  ebp = current_task->ebp;
-  // Make sure the memory manager knows we've changed page directory.
   current_directory = current_task->page_directory;
-
-  // Change our kernel stack over.
   set_kernel_stack(current_task->kernel_stack);
 
   unsigned int physical = get_physical(current_directory->phys_tables);
-  perform_task_switch(eip, physical, ebp, esp);
+  perform_task_switch(physical, current_task->ebp, current_task->esp);
+
 }
 
 task_t *create_init_task()
@@ -129,8 +125,9 @@ task_t *create_init_task()
   task_t *task = (task_t*)kmalloc(sizeof(task_t));
   task->page_directory = current_directory;
   task->id = process_count++;
-  task->esp = task->ebp = task->eip = task->next = 0;
+  task->stack = STACK_START;
   task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE;
+  task->esp = task->ebp = task->eip = task->next = 0;
   return task;
 }
 
@@ -138,19 +135,15 @@ task_t *create_task()
 {
   task_t *task = (task_t*)kmalloc(sizeof(task_t));
   task->page_directory = clone_directory(current_directory);
-  // printf("Child Dir [%x]\n", task->page_directory->phys_tables);
+  task->stack = STACK_START;
   task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE;
   task->id = process_count++;
   task->esp = task->ebp = task->eip = task->next = 0;
   return task;
 }
 
-int fork()
+task_t *kfork()
 {
-  // We are modifying kernel structures, and so cannot
-  asm volatile("cli");
-  // Take a pointer to this process' task struct for later reference.
-  task_t *parent_task = (task_t*)current_task;
   // Clone the address space.
   task_t *child = create_task();
 
@@ -161,23 +154,27 @@ int fork()
   }
   tmp_task->next = child;
 
-  // This will be the entry point for the new process.
-  unsigned int eip = read_eip();
+  return child;
+}
 
-  // We could be the parent or the child here - check.
-  if (current_task == parent_task)
-  {
-    // We are the parent, so set up the esp/ebp/eip for our child.
-    asm volatile("mov %%esp, %0" : "=r"(child->esp));
-    asm volatile("mov %%ebp, %0" : "=r"(child->ebp));
-    child->eip = eip;
-    asm volatile("sti");
+// Read the execution state before jumping into privleged fork
+int fork()
+{
+  // We are modifying kernel structures, and so cannot
+  asm volatile("cli");
+  task_t *parent_task = (task_t*)current_task;
+  task_t *child = syscall_fork();
+  asm volatile("sti");
+
+  RD_ESP(child->esp);
+  RD_EBP(child->ebp);
+
+  printf("EBP: [%x]\n", child->ebp);
+  child->eip = read_eip();
+  if (parent_task == current_task)
     return child->id;
-  }
   else
-  {
-    return 0;
-  }
+    return 0x0;
 }
 
 int getpid()

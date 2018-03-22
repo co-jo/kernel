@@ -14,7 +14,7 @@ DEFN_SYSCALL2(printf, 2, const char*, int);
 
 static void *syscalls[3] =
 {
-    &fork,
+    &kfork,
     &halt,
     &printf
 };

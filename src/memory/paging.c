@@ -110,7 +110,7 @@ void identity_map()
   }
 }
 
-/* Purpose of this is to avoid altering the placement address 
+/* Purpose of this is to avoid altering the placement address
  * during the identity mappign */
 void map_first_table()
 {
@@ -150,7 +150,7 @@ void initialise_paging()
 
   // Manual allocation for first table
   map_first_table();
-  
+
   // 1:1 Mapping
   identity_map();
 
@@ -278,7 +278,7 @@ void clone_table(page_directory_t *dest, page_table_t *src, int tid)
       int sflags = read_flags(&src->pages[i]);
       alloc_page(&table->pages[i], sflags);
       // Physically copy the data across. This function is in process.s.
-      copy_page_physical(src->pages[i].frame*FRAME_SIZE, table->pages[i].frame*0x1000);
+      copy_page_physical(src->pages[i].frame*FRAME_SIZE, table->pages[i].frame*FRAME_SIZE);
     }
   }
 }
@@ -304,10 +304,10 @@ page_directory_t *clone_directory(page_directory_t *src)
     if (!src->tables[i])
       continue;
     if (kernel_directory->tables[i] == src->tables[i]) {
-      link_table(dir, src, i); // puts("linking..\n"); 
+      link_table(dir, src, i); puts("linking..\n");
     }
     else {
-      clone_table(dir, src->tables[i], i); // puts("cloning..\n");
+      clone_table(dir, src->tables[i], i); puts("cloning..\n");
     }
   }
   return dir;
@@ -316,7 +316,7 @@ page_directory_t *clone_directory(page_directory_t *src)
 // Get Physical FRAME
 unsigned int get_physical(unsigned int *virtual)
 {
-  page_t *page = get_page(virtual, current_directory, 0); 
+  page_t *page = get_page(virtual, current_directory, 0);
   return page->frame * FRAME_SIZE; /* + (virtual & 0xFFF) = Complete Address */
 }
 
