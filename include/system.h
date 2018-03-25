@@ -55,10 +55,10 @@ void halt();
 void cli(char *message);
 
 // MACROS
-#define RD_EBP(MEM) ({ asm volatile("mov %%ebp, %0":"=r"(MEM)); })
-#define RD_ESP(MEM) ({ asm volatile("mov %%esp, %0":"=r"(MEM)); })
+#define RD_EBP(MEM) asm volatile("mov %%ebp, %0":"=r"(MEM))
+#define RD_ESP(MEM) asm volatile("mov %%esp, %0":"=r"(MEM))
 
-#define WT_EBP(MEM) ({ asm volatile("mov %0, %%ebp"::"r"(MEM)); })
-#define WT_ESP(MEM) ({ asm volatile("mov %0, %%esp"::"r"(MEM)); })
+#define WT_EBP(MEM) asm volatile("mov %0, %%ebp"::"r"(MEM))
+#define WT_ESP(MEM) asm volatile("mov %0, %%esp"::"r"(MEM))
 
 #endif

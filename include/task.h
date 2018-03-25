@@ -28,7 +28,7 @@ void switch_task();
 
 // Forks the current process, spawning a new one with a different
 // memory space.
-task_t *kfork();
+int kfork();
 
 int fork();
 

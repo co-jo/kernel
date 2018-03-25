@@ -33,3 +33,6 @@ print-%: ; @echo $* = $($*)
 
 gdb:
 	qemu-system-i386 -hda floppy.img -kernel kernel -s -S
+
+log:
+	qemu-system-i386 -hda floppy.img -kernel kernel console=ttyS0 -serial stdio

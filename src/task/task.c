@@ -32,9 +32,8 @@ void initialise_tasking()
   asm volatile("cli");
   // Relocate the stack so we know where it is.
   // Initialise the first task (kernel task)
-
-  current_task = create_init_task();
   move_stack(0xE0000000, 0x2);
+  current_task = create_init_task();
   ready_queue = current_task;
 
   // Reenable interrupts.
@@ -64,8 +63,9 @@ void move_stack(unsigned int base, unsigned int num_frames)
   // Old ESP and EBP, read from registers.
   unsigned int old_esp;
   unsigned int old_ebp;
+
+  RD_EBP(old_ebp);
   RD_ESP(old_esp);
-  RD_ESP(old_ebp);
 
   // Offset to add to old stack addresses to get a new stack address.
   unsigned int offset = base - initial_esp;
@@ -90,6 +90,7 @@ void move_stack(unsigned int base, unsigned int num_frames)
       *tmp2 = tmp;
     }
   }
+
   // Change stacks.
   WT_EBP(new_ebp);
   WT_ESP(new_esp);
@@ -116,8 +117,10 @@ void switch_task()
   set_kernel_stack(current_task->kernel_stack);
 
   unsigned int physical = get_physical(current_directory->phys_tables);
+
   perform_task_switch(physical, current_task->ebp, current_task->esp);
 
+  return 0;
 }
 
 task_t *create_init_task()
@@ -135,16 +138,18 @@ task_t *create_task()
 {
   task_t *task = (task_t*)kmalloc(sizeof(task_t));
   task->page_directory = clone_directory(current_directory);
-  task->stack = STACK_START;
+  task->stack = kmalloc_a(2 * FRAME_SIZE) + 2 * FRAME_SIZE;
   task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE;
   task->id = process_count++;
   task->esp = task->ebp = task->eip = task->next = 0;
   return task;
 }
 
-task_t *kfork()
+int kfork()
 {
   // Clone the address space.
+  asm volatile("cli");
+  task_t *parent = (task_t*)current_task;
   task_t *child = create_task();
 
   // Add it to the end of the ready queue.
@@ -152,27 +157,17 @@ task_t *kfork()
   while (tmp_task->next) {
     tmp_task = tmp_task->next;
   }
-  tmp_task->next = child;
-
-  return child;
-}
-
-// Read the execution state before jumping into privleged fork
-int fork()
-{
-  // We are modifying kernel structures, and so cannot
-  asm volatile("cli");
-  task_t *parent_task = (task_t*)current_task;
-  task_t *child = syscall_fork();
-  asm volatile("sti");
 
   RD_ESP(child->esp);
   RD_EBP(child->ebp);
-
-  printf("EBP: [%x]\n", child->ebp);
   child->eip = read_eip();
-  if (parent_task == current_task)
+  printf("Current Task : [%x]\n", current_task);
+  if (parent == current_task) {
+    int size = FRAME_SIZE * 2;
+    memcpy(child->stack - size, parent->stack - size, FRAME_SIZE * 2);
+    asm volatile("sti");
     return child->id;
+  }
   else
     return 0x0;
 }

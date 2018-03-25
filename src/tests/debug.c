@@ -32,7 +32,7 @@ void dump_regs(regs_t *regs)
   printf("EAX[%x]\n", regs->eax);
   printf("INT[%x]\n", regs->int_no);
   printf("ERR[%b]\n", regs->err_code);
-  
+
   unsigned int* ptr = (unsigned int *)regs->eip;
   printf("EIP[%x]\n", *ptr);
   printf("CS[%x]\n", regs->cs);
