@@ -3,21 +3,29 @@ read_eip:
     mov eax, [esp]
     ret
 
+pushed_eip:
+   push edx
+   mov eax, 0x20
+   out 0x20, al          ; Because we end up jumping, handler never returns
+   sti
+   ret
+
 [GLOBAL perform_task_switch]
 perform_task_switch:
     cli
-    mov ebx, [esp]     ; Save EIP
-    mov eax, [esp+4]   ; physical address of current directory
-    mov ebp, [esp+8]   ; EBP
-    mov esp, [esp+12]  ; ESP
-    mov cr3, eax       ; set the page directory
-    ;mov eax, 0x12345  ;
-    push ebx           ; Push saved EIP to return normally
-    sti                ;
-    ret                ;
+    mov ebx, [esp]       ; Save EIP
+    mov edx, [esp+0x4]   ; Passed in EIP (ARG 1)
+    mov eax, [esp+0x8]   ; PAGEDIR Phys  (ARG 2)
+    mov ebp, [esp+0xC]   ; EBP           (ARG 3)
+    mov esp, [esp+0x10]  ; ESP           (ARG 4)
+    mov cr3, eax         ; Set PDIR by loading into CR3
+    cmp edx, 0x0         ;
+    jne pushed_eip       ; If what we pass into EIP is non NULL (FORKED), JMP
+    push ebx             ; Push saved EIP to return normally
+    sti                  ;
+    ret                  ;
 
 ; We need to so we can recognize where to ret to from a user fork
-
 extern current_task
 
 [GLOBAL save_frame]
@@ -32,7 +40,7 @@ save_frame:
 
 [GLOBAL ufork]
 ufork:
-    mov eax, 0x0
+    mov eax, 0x0            ; 0x0 = ID of syscall
     call save_frame
     int 0x80
     ret

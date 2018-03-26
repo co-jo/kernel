@@ -21,7 +21,7 @@ extern unsigned int initial_esp;
 extern unsigned int read_eip();
 extern heap_t *kheap;
 
-extern void perform_task_switch(unsigned int, unsigned int, unsigned int);
+extern void perform_task_switch(unsigned int eip, unsigned int, unsigned int, unsigned int);
 
 // The next available process ID.
 int process_count = 1;
@@ -104,6 +104,7 @@ void switch_task()
   if (!current_task)
     return;
 
+  // EIP should be implicilty saved on the stack before entering this function
   RD_EBP(current_task->ebp);
   RD_ESP(current_task->esp);
 
@@ -116,16 +117,23 @@ void switch_task()
   current_directory = current_task->page_directory;
   set_kernel_stack(current_task->kernel_stack);
 
+  // Loads Page and looks at associated FRAME
   unsigned int physical = get_physical(current_directory->phys_tables);
+  // If we just forked we want to JMP to new entry; Else switch by RET
+  unsigned int eip = 0;
 
-  perform_task_switch(physical, current_task->ebp, current_task->esp);
-
-  // On a forked tasked, we directly jump to the next instruction
-  if (current_task->state == FORKED) {
-    // Notify PIC we handle the IRQ0 INT
-    outportb(0x20, 0x20);
-    return current_task->eax;
+  printf("Now in Task : [%x]\n", current_task->id);
+  if(current_task->state == FORKED) {
+    eip = current_task->eip;
+    current_task->state = READY;
   }
+  perform_task_switch(eip, physical, current_task->ebp, current_task->esp);
+
+
+  // Hopefully by instead of JMPing on each switch (only during fork)
+  // We enter switch save T1's execution and eventually pick back up
+  // where we left off and RET - maintaining a clearer flow of execution
+  // and keeping the stack 'clean'
 
   return 0;
 }
@@ -166,8 +174,11 @@ int kfork()
   }
   tmp_task->next = child;
 
-  child->eax = 0x0;
+  child->ebp = parent->ebp;
+  child->esp = parent->esp;
+  child->eip = parent->eip;
   child->state = FORKED;
+  child->eax = 0x0;
 
   // int size = FRAME_SIZE * 2;
   // memcpy(child->stack - size, parent->stack - size, FRAME_SIZE * 2);

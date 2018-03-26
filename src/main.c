@@ -36,16 +36,22 @@ int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
   switch_to_user_mode();
 
   int pid = ufork();
-  if (pid) {
-    syscall_printf("Child Task: [%x]\n", pid);
+  syscall_printf("PID : [%x]\n", pid);
+  if (pid > 0) {
+    int i = 0;
+    int sum = 0;
+    for (int i = 0; i < 1000; i++)
+     sum++;
+    syscall_printf("Final SUM (Panret): [%x]\n", sum);
   }
   else {
-    syscall_printf("In Child RET %x \n", pid);
-    cli("...");
-
+    int i = 0;
+    int sum = 0;
+    for (int i = 0; i < 1000; i++)
+     sum++;
+    syscall_printf("Final SUM (Child) : [%x]\n", sum);
+    cli(">...<");
   }
-  
-  syscall_halt("..");
 
   return 0;
 }

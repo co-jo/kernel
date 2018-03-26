@@ -15,7 +15,6 @@ void timer_handler(regs_t *r)
   if (timer_ticks % frequency == 0)
   {
     timer_ticks = 0;
-    puts("Switch Task..\n");
     switch_task();
   }
 }
@@ -43,7 +42,6 @@ void timer_phase(int hz)
 void timer_wait(int ticks)
 {
   unsigned long eticks;
-
   eticks = timer_ticks + ticks;
   while(timer_ticks < eticks);
 }
