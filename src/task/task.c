@@ -120,6 +120,13 @@ void switch_task()
 
   perform_task_switch(physical, current_task->ebp, current_task->esp);
 
+  // On a forked tasked, we directly jump to the next instruction
+  if (current_task->state == FORKED) {
+    // Notify PIC we handle the IRQ0 INT
+    outportb(0x20, 0x20);
+    return current_task->eax;
+  }
+
   return 0;
 }
 
@@ -157,19 +164,15 @@ int kfork()
   while (tmp_task->next) {
     tmp_task = tmp_task->next;
   }
+  tmp_task->next = child;
 
-  RD_ESP(child->esp);
-  RD_EBP(child->ebp);
-  child->eip = read_eip();
-  printf("Current Task : [%x]\n", current_task);
-  if (parent == current_task) {
-    int size = FRAME_SIZE * 2;
-    memcpy(child->stack - size, parent->stack - size, FRAME_SIZE * 2);
-    asm volatile("sti");
-    return child->id;
-  }
-  else
-    return 0x0;
+  child->eax = 0x0;
+  child->state = FORKED;
+
+  // int size = FRAME_SIZE * 2;
+  // memcpy(child->stack - size, parent->stack - size, FRAME_SIZE * 2);
+  asm volatile("sti");
+  return child->id;
 }
 
 int getpid()

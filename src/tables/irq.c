@@ -60,14 +60,14 @@ void irq_install()
 
 void irq_handler(regs_t *regs)
 {
-  // switch_task does not return atm...
-  if (regs->int_no >= 40) {
-    outportb(0xA0, 0x20);
-  }
-  outportb(0x20, 0x20);
-  /* This is a blank function pointer */
+   /* This is a blank function pointer */
   isr_t handler = irq_routines[regs->int_no - 32];
   if (handler) {
     handler(regs);
   }
+   // Switch Task does not ret on fork..
+  if (regs->int_no >= 40) {
+    outportb(0xA0, 0x20);
+  }
+  outportb(0x20, 0x20);
 }

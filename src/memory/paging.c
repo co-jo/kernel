@@ -304,10 +304,10 @@ page_directory_t *clone_directory(page_directory_t *src)
     if (!src->tables[i])
       continue;
     if (kernel_directory->tables[i] == src->tables[i]) {
-      link_table(dir, src, i); puts("linking..\n");
+      link_table(dir, src, i);
     }
     else {
-      clone_table(dir, src->tables[i], i); puts("cloning..\n");
+      clone_table(dir, src->tables[i], i);
     }
   }
   return dir;

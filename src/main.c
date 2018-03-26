@@ -35,13 +35,17 @@ int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
   initialise_syscalls();
   switch_to_user_mode();
 
-  int pid = syscall_fork();
+  int pid = ufork();
   if (pid) {
     syscall_printf("Child Task: [%x]\n", pid);
   }
   else {
     syscall_printf("In Child RET %x \n", pid);
+    cli("...");
+
   }
+  
+  syscall_halt("..");
 
   return 0;
 }

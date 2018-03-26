@@ -5,14 +5,37 @@ read_eip:
 
 [GLOBAL perform_task_switch]
 perform_task_switch:
-    cli                ;
+    cli
+    mov ebx, [esp]     ; Save EIP
     mov eax, [esp+4]   ; physical address of current directory
     mov ebp, [esp+8]   ; EBP
     mov esp, [esp+12]  ; ESP
     mov cr3, eax       ; set the page directory
     ;mov eax, 0x12345  ;
+    push ebx           ; Push saved EIP to return normally
     sti                ;
     ret                ;
+
+; We need to so we can recognize where to ret to from a user fork
+
+extern current_task
+
+[GLOBAL save_frame]
+save_frame:
+    mov ecx, [esp]          ; Load saved EIP
+    add ecx, 4              ; Skip to insturction after saved EIP
+    mov edx, [current_task]
+    mov [edx], esp
+    mov [edx + 4], ebp
+    mov [edx + 8], ecx
+    ret
+
+[GLOBAL ufork]
+ufork:
+    mov eax, 0x0
+    call save_frame
+    int 0x80
+    ret
 
 [GLOBAL copy_page_physical]
 copy_page_physical:

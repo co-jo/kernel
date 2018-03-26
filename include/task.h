@@ -8,16 +8,27 @@
 #include "system.h"
 #include "paging.h"
 
+#define FORKED -1
+#define READY 1
+#define RUNNING 2
+#define ZOMBIE 0
+#define WAITING 3
+#define MASKABLE 4
+#define NOT_MASKABLE 5
+
 // This structure defines a 'task' - a process.
 typedef struct task
 {
-    int id;                               // Process ID.
-    unsigned int esp, ebp;                // Stack and base pointers.
-    unsigned int eip;                     // Instruction pointer.
-    page_directory_t *page_directory;     // Page directory.
+    unsigned int esp;                     // Base Pointer
+    unsigned int ebp;                     // Stack Pointer
+    unsigned int eip;                     // Instruction pointer
+    unsigned int eax;                     // Possible return value
+    page_directory_t *page_directory;     // Page directory
     unsigned int kernel_stack;            // SYSCall stack
     unsigned int stack;                   // Main Stack
-    struct task *next;                    // The next task in a linked list.
+    unsigned int state;                   // State the process can be in
+    struct task *next;                    // The next task in a linked list
+    int id;                               // Process ID
 } task_t;
 
 // Initialises the tasking system.
