@@ -11,6 +11,10 @@
 
 #include "syscall.h"
 #include "debug.h"
+
+// Wrappers for syscalls - not actual C stdlib
+#include "stdlib.h"
+
 unsigned int initial_esp;
 
 int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
@@ -25,6 +29,8 @@ int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
   irq_install();
   /* Video Output */
   init_video();
+  /* Keyboard */
+  keyboard_install();
   /* Support Tasking */
   timer_install(18);
 
@@ -33,25 +39,36 @@ int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
 
   /* Support RING3 */
   initialise_syscalls();
-  switch_to_user_mode();
+  //switch_to_user_mode();
 
-  int pid = ufork();
-  syscall_printf("PID : [%x]\n", pid);
-  if (pid > 0) {
-    int i = 0;
-    int sum = 0;
-    for (int i = 0; i < 1000; i++)
-     sum++;
-    syscall_printf("Final SUM (Panret): [%x]\n", sum);
-  }
-  else {
-    int i = 0;
-    int sum = 0;
-    for (int i = 0; i < 1000; i++)
-     sum++;
-    syscall_printf("Final SUM (Child) : [%x]\n", sum);
-    cli(">...<");
-  }
+  putch("║");
+  putch("\n");
+  // int i, j;
+  // for (i = 0; i < 16; i++) {
+  //   for (j = 0; j < 80; j++) {
+  //     puts("@");
+  //   }
+  //   puts("\n");
+  // }
+
+  halt();
+  // int pid = fork();
+  // syscall_printf("PID : [%x]\n", pid);
+  // if (pid > 0) {
+  //   int i = 0;
+  //   int sum = 0;
+  //   for (int i = 0; i < 1000; i++)
+  //    sum++;
+  //   syscall_printf("Final SUM (Panret): [%x]\n", sum);
+  // }
+  // else {
+  //   int i = 0;
+  //   int sum = 0;
+  //   for (int i = 0; i < 1000; i++)
+  //    sum++;
+  //   syscall_printf("Final SUM (Child) : [%x]\n", sum);
+  //   syscall_halt(">...<");
+  // }
 
   return 0;
 }

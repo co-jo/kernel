@@ -18,7 +18,7 @@ volatile task_t *ready_queue;
 extern page_directory_t *kernel_directory;
 extern page_directory_t *current_directory;
 extern unsigned int initial_esp;
-extern unsigned int read_eip();
+
 extern heap_t *kheap;
 
 extern void perform_task_switch(unsigned int eip, unsigned int, unsigned int, unsigned int);
@@ -122,13 +122,11 @@ void switch_task()
   // If we just forked we want to JMP to new entry; Else switch by RET
   unsigned int eip = 0;
 
-  printf("Now in Task : [%x]\n", current_task->id);
   if(current_task->state == FORKED) {
     eip = current_task->eip;
     current_task->state = READY;
   }
   perform_task_switch(eip, physical, current_task->ebp, current_task->esp);
-
 
   // Hopefully by instead of JMPing on each switch (only during fork)
   // We enter switch save T1's execution and eventually pick back up
@@ -145,7 +143,7 @@ task_t *create_init_task()
   task->id = process_count++;
   task->stack = STACK_START;
   task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE;
-  task->esp = task->ebp = task->eip = task->next = 0;
+  task->esp = task->ebp = task->eip = task->next = task->user = 0;
   return task;
 }
 
@@ -156,11 +154,11 @@ task_t *create_task()
   task->stack = kmalloc_a(2 * FRAME_SIZE) + 2 * FRAME_SIZE;
   task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE;
   task->id = process_count++;
-  task->esp = task->ebp = task->eip = task->next = 0;
+  task->esp = task->ebp = task->eip = task->next = task->user = 0;
   return task;
 }
 
-int kfork()
+int pfork()
 {
   // Clone the address space.
   asm volatile("cli");

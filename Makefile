@@ -15,7 +15,7 @@ LDFLAGS= -melf_i386 -Tlink.ld
 ASFLAGS= -felf
 OUTPUT=kernel
 
-all: $(OBJECTS) link
+all: $(OBJECTS) link 
 
 clean:
 	-rm src/*.o src/*/*.o kernel
@@ -33,6 +33,9 @@ print-%: ; @echo $* = $($*)
 
 gdb:
 	qemu-system-i386 -hda floppy.img -kernel kernel -s -S
+
+home:
+	qemu-system-i386 -hda floppy.img -kernel kernel
 
 log:
 	qemu-system-i386 -hda floppy.img -kernel kernel console=ttyS0 -serial stdio

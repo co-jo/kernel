@@ -8,13 +8,13 @@
 #include "scrn.h"
 #include "system.h"
 
-DEFN_SYSCALL0(fork, 0);
+DEFN_SYSCALL0(pfork, 0);
 DEFN_SYSCALL0(halt, 1);
 DEFN_SYSCALL2(printf, 2, const char*, int);
 
 static void *syscalls[3] =
 {
-    &kfork,
+    &pfork,
     &halt,
     &printf
 };

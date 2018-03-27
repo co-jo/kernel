@@ -17,18 +17,20 @@
 #define NOT_MASKABLE 5
 
 // This structure defines a 'task' - a process.
+// Do not change order of ESP/EBP/EIP/EAX! - Refer to save_frame
 typedef struct task
 {
     unsigned int esp;                     // Base Pointer
     unsigned int ebp;                     // Stack Pointer
     unsigned int eip;                     // Instruction pointer
     unsigned int eax;                     // Possible return value
-    page_directory_t *page_directory;     // Page directory
     unsigned int kernel_stack;            // SYSCall stack
     unsigned int stack;                   // Main Stack
     unsigned int state;                   // State the process can be in
+    unsigned int user;                    // Is this a user or kernel task
     struct task *next;                    // The next task in a linked list
     int id;                               // Process ID
+    page_directory_t *page_directory;     // Page directory
 } task_t;
 
 // Initialises the tasking system.
@@ -39,9 +41,9 @@ void switch_task();
 
 // Forks the current process, spawning a new one with a different
 // memory space.
-int kfork();
+int pfork();
 
-int fork();
+// int fork();
 
 // Causes the current process' stack to be forcibly moved to a new location.
 void move_stack(unsigned int base, unsigned int num_frames);

@@ -27,6 +27,7 @@ perform_task_switch:
 
 ; We need to so we can recognize where to ret to from a user fork
 extern current_task
+extern pfork
 
 [GLOBAL save_frame]
 save_frame:
@@ -38,12 +39,20 @@ save_frame:
     mov [edx + 8], ecx
     ret
 
-[GLOBAL ufork]
-ufork:
+; User fork - Setup sys call ID & INT
+[GLOBAL fork]
+fork:
     mov eax, 0x0            ; 0x0 = ID of syscall
     call save_frame
     int 0x80
-    ret
+    nop                     ; Not terribly clever...but must pad the instruction
+    ret                     ; as we add 4 to ret above - int 0x80 is 2 byte int
+
+[GLOBAL kfork]
+kfork:
+    call save_frame
+    call pfork
+    ret                   ; Load new task starting here
 
 [GLOBAL copy_page_physical]
 copy_page_physical:

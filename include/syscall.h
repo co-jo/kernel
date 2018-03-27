@@ -62,7 +62,7 @@ int syscall_##fn(P1 p1, P2 p2, P3 p3, P4 p4, P5 p5) \
   return a; \
 }
 
-DECL_SYSCALL0(fork);
+DECL_SYSCALL0(pfork);
 DECL_SYSCALL0(halt);
 DECL_SYSCALL2(printf, const char *, int arg);
 #endif
