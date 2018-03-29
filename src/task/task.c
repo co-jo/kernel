@@ -14,6 +14,9 @@ volatile task_t *current_task;
 // The start of the task linked list.
 volatile task_t *ready_queue;
 
+// list of sleeping tasks
+volatile task_t *sleep_list;
+
 // Some externs are needed to access members in paging.c...
 extern page_directory_t *kernel_directory;
 extern page_directory_t *current_directory;
@@ -100,6 +103,7 @@ void move_stack(unsigned int base, unsigned int num_frames)
 // as if it was never switched. The eip is implict in the return;
 void switch_task()
 {
+  
   // If we haven't initialised tasking yet, just return.
   if (!current_task)
     return;
@@ -108,11 +112,12 @@ void switch_task()
   RD_EBP(current_task->ebp);
   RD_ESP(current_task->esp);
 
-  // Getinitialise the next task to run.
-  current_task = current_task->next;
+  if (current_task->state == ZOMBIE) {
+      cleanup_task(current_task);
+  }
 
-  // If we fell off the end of the linked list start again at the beginning.
-  if (!current_task) current_task = ready_queue;
+  // Getinitialise the next task to run.
+  current_task = ready_queue;
 
   current_directory = current_task->page_directory;
   set_kernel_stack(current_task->kernel_stack);
@@ -144,6 +149,8 @@ task_t *create_init_task()
   task->stack = STACK_START;
   task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE;
   task->state = READY;
+  task->priority = DEFAULT_PRIORITY;
+  task->sleep_time = 0;
   task->esp = task->ebp = task->eip = task->next = task->user = 0;
   return task;
 }
@@ -157,6 +164,8 @@ task_t *create_task()
   task->id = process_count++;
   task->esp = task->ebp = task->eip = task->next = task->user = 0;
   task->state = FORKED;
+  task->priority = DEFAULT_PRIORITY;
+  task->sleep_time = 0;
   return task;
 }
 
@@ -167,27 +176,202 @@ int pfork()
   task_t *parent = (task_t*)current_task;
   task_t *child = create_task();
 
-  // Add it to the end of the ready queue.
-  task_t *tmp_task = (task_t*)ready_queue;
-  while (tmp_task->next) {
-    tmp_task = tmp_task->next;
-  }
-  tmp_task->next = child;
+  enqueue_task(child);
 
   child->ebp = parent->ebp;
   child->esp = parent->esp;
   child->eip = parent->eip;
   child->eax = 0x0;
 
-  // int size = FRAME_SIZE * 2;
-  // memcpy(child->stack - size, parent->stack - size, FRAME_SIZE * 2);
   asm volatile("sti");
   return child->id;
+}
+
+void exit() {
+    task_t *dying = dequeue_task();
+    dying->state = ZOMBIE;
+    yield();
+}
+
+void yield() {
+    switch_task();
+}
+
+void reprioritize()
+{
+    // 1 is the 'highest' priority, 10 is the 'lowest'
+    // meaning a greater priority value is actually lower priority :)
+    // return immediately if the ready queue only has one task
+    if (!ready_queue->next) {
+        return;
+    }
+
+    task_t *first_task = (task_t*)ready_queue;
+    task_t *tmp_task = (task_t*)ready_queue;
+
+    // first, check if the first task is priority 10
+    // in this case, all tasks have decayed to the lowest priority, so we
+    // switch to a round-robin scheduling
+    if (first_task->priority == 10) {
+        ready_queue = ready_queue->next;
+        ready_queue->prev = 0;
+        while (tmp_task->next)
+            tmp_task = tmp_task->next;
+        tmp_task->next = first_task;
+        first_task->prev = tmp_task;
+        first_task->next = 0;
+    } 
+    else {
+        first_task->priority++;
+        if (first_task->priority > first_task->next->priority) {
+            ready_queue = ready_queue->next;
+            ready_queue->prev = 0;
+            tmp_task = tmp_task->next;
+            // while tmp_task still has a higher priority than first_task
+            while (first_task->priority > tmp_task->priority) {
+                if (tmp_task->next) 
+                    tmp_task = tmp_task->next;
+                else
+                    break;
+            }
+            if (tmp_task->next) {
+                // tmp_task now has a lesser or equal priority to first_task
+                tmp_task->prev->next = first_task;
+                first_task->prev = tmp_task->prev;
+                first_task->next = tmp_task;
+                tmp_task->prev = first_task;
+            } else {
+                tmp_task->next = first_task;
+                first_task->prev = tmp_task;
+                first_task->next = 0;
+            }
+        }
+    }
+    return;
+}
+
+int setpriority(int pid, int new_priority) 
+{
+    task_t *iter = (task_t*)ready_queue;
+    // edge case: first task matches pid
+    if (iter->id == pid) {
+        ready_queue = ready_queue->next;
+        ready_queue->prev = 0;
+        iter->next = 0;
+        iter->priority = new_priority;
+        enqueue_task(iter);
+    } else {
+        while(iter && (pid != iter->id))
+            iter = iter->next;
+        // if we found a task with a matching pid
+        if (iter) {
+            // set the new priority, and remove the task from the ready queue
+            iter->priority = new_priority;
+            iter->prev->next = iter->next;
+            iter->next->prev = iter->prev;
+            iter->next = 0;
+            iter->prev = 0;
+            // then add the task back into the queue
+            enqueue_task(iter);
+        }
+    }
+    return iter ? new_priority : 0;
+}
+
+/**
+ * inserts a task into the ready queue
+ * ordered by task priority
+ */
+void enqueue_task(task_t *task)
+{
+    if (!task) return;
+    task_t *iterator = (task_t*)ready_queue;
+
+    // edge case, one element queue
+    if (!iterator->next) {
+        if (task->priority <= iterator->priority) {
+            task->next = iterator;
+            iterator->prev = task;
+            ready_queue = task;
+        } else {
+            iterator->next = task;
+            task->prev = iterator;
+        }
+        return;
+    }
+
+    while (iterator->next) {
+        // if task is still a lower priority than the iterator
+        if (task->priority > iterator->priority) {
+            iterator = iterator->next;
+        } else {
+            break;
+        }
+    }
+
+    // if we haven't reached the end of the queue
+    if (iterator->next) {
+        task->next = iterator->next;
+        iterator->next = task;
+        task->prev = iterator;
+    } else {
+        iterator->next = task;
+        task->prev = iterator;
+        task->next = 0;
+    }
+    // the task is now in the correct place in the queue
+}
+
+task_t *dequeue_task()
+{
+    // error check: current_task not set
+    if (!current_task) return 0;
+    ready_queue = ready_queue->next;
+    if (ready_queue) {
+        ready_queue->prev = 0;
+    }
+    current_task->next = 0;
+    return current_task;
+}
+
+void cleanup_task(task_t *task) { }
+
+int sleep(unsigned int secs)
+{
+    task_t *sleeping = dequeue_task();
+    sleeping->sleep_time = secs;
+    sleeping->state = SLEEPING;
+
+    sleeping->next = sleep_list;
+    sleep_list->prev = sleeping;
+    sleep_list = sleeping;
+
+    yield();
+
+    return sleeping->sleep_time;
+}
+
+void update_sleeping_tasks()
+{
+
 }
 
 int getpid()
 {
   return current_task->id;
+}
+
+void print_ready_queue()
+{
+    task_t *temp = (task_t*)ready_queue;
+    int pos = 0;
+    char *buf;
+    while(temp) {
+        printf("Task [%d]: ", temp->id);
+        printf("Priority: [%d]\n", temp->priority);
+        temp = temp->next;
+    }
+    puts("\n");
 }
 
 void switch_to_user_mode()

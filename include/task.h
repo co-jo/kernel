@@ -13,8 +13,11 @@
 #define READY 1
 #define WAITING 2
 #define RUNNING 3
-#define MASKABLE 4
-#define NOT_MASKABLE 5
+#define SLEEPING 4
+#define MASKABLE 5
+#define NOT_MASKABLE 6
+
+#define DEFAULT_PRIORITY 4
 
 // This structure defines a 'task' - a process.
 // Do not change order of ESP/EBP/EIP/EAX! - Refer to save_frame
@@ -29,7 +32,10 @@ typedef struct task
     unsigned int state;                   // State the process can be in
     unsigned int user;                    // Is this a user or kernel task
     struct task *next;                    // The next task in a linked list
+    struct task *prev;
     int id;                               // Process ID
+    int priority;                         // Task priority
+    unsigned int sleep_time;           // How much longer this task needs to sleep
     page_directory_t *page_directory;     // Page directory
 } task_t;
 
@@ -59,5 +65,13 @@ task_t *create_task();
 
 // Initial Kernel Task
 task_t *create_init_task();
+
+// insert a task into the ready queue
+void enqueue_task(task_t *task);
+
+// remove the first task
+task_t *dequeue_task();
+
+int sleep(unsigned int secs);
 
 #endif

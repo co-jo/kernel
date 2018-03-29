@@ -44,12 +44,25 @@ int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
   initialise_syscalls();
   //switch_to_user_mode();
 
-  int i = 0;
-  for (i = 0; i < 20; i++) {
-    int k;
-    for (k = 0; k < 77; k++)
-      putch("@");
-
+  int p = kfork();
+  if (p) { // in parent
+      print_ready_queue();
+      setpriority(1, 7);
+      print_ready_queue();
+      yield();
+      puts("In parent\n");
+  } else {
+      int p2 = kfork();
+      if (p2) {
+          print_ready_queue();
+          puts("In child 1\n");
+          exit();
+      } else {
+          puts("In child 2\n");
+          print_ready_queue();
+          exit();
+      }
   }
+  // exit();
   return 0;
 }
