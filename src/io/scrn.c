@@ -1,6 +1,7 @@
 #include "system.h"
 #include "scrn.h"
 #define map(i, j) (i * 80 + j)
+#define lmap(y) (y % 200)
 
 /* These define our textpointer, our background and foreground
  *  colors (attributes), and x and y cursor coordinates */
@@ -29,18 +30,10 @@ void scroll(void)
    *  backcolor too */
   unsigned blank = 0x20 | (attrib << 8);
 
-  /* Row 25 is the end, this means we need to scroll up */
-  if(offset_y >= 22)
+  // To scroll down - cursor must be below and reach
+  if(lmap(offset_y) >= 22 && csr_y > 3)
   {
-    /* Move the current text chunk that makes up the screen
-     *  back in the buffer by a line */
-    temp = offset_y % 200 - 22 + 1;
-    memcpy (textmemptr, textmemptr + temp * 80, (22 - temp) * 80 * 2);
 
-    /* Finally, we set the chunk of memory that occupies
-     *  theklast line of text to our 'blank' character */
-    memsetw (textmemptr + (22 - temp) * 80, blank, 80);
-    offset_y = 22 - 1;
   }
   if (offset_y < 0)
   {
@@ -128,7 +121,7 @@ void putch(unsigned char c)
    *  in a linear chunk of memory can be represented by:
    *  Index = [(y * width) + x] */
   else if(c >= ' ') {
-    where = textmemptr + ((offset_y % 200) * 80 + offset_x % 200);
+    where = textmemptr + ((offset_y % 200) * 80 + offset_x);
     *where = c | att;	/* Character AND attributes: color */
     buffer[offset_y % 200][offset_x] = *where;
     offset_x++;
@@ -294,7 +287,6 @@ void key_handler(char scancode, char val)
   }
   // Spacebar
   else if (scancode == 0x39) {
-    // Should shift right..
     unsigned short att = attrib << 8;
     memsetw(textmemptr + map(csr_y, csr_x), ' ' | att, 1);
     csr_x++;

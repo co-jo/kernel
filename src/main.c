@@ -44,12 +44,25 @@ int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
   initialise_syscalls();
   //switch_to_user_mode();
 
+  // int pid = fork();
+  // if (pid > 0) {
+  //   int i;
+  //   int sum = 0;
+  //   for (i = 0; i < 100000001; i++) {
+  //     sum++;
+  //   }
+  //   printf("PSUM: [%d]\n", sum);
+  // } else {
+  //   int i;
+  //   int sum = 0;
+  //   for (i = 0; i < 100000000; i++) {
+  //     sum++;
+  //   }
+  //   printf("CSUM: [%d]\n", sum);
+  // }
   int i = 0;
-  for (i = 0; i < 20; i++) {
-    int k;
-    for (k = 0; k < 77; k++)
-      putch("@");
-
-  }
+   for (i = 0; i < 100; i++) {
+    puts("Hello\n");
+   }
   return 0;
 }
