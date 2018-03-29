@@ -8,11 +8,11 @@
 #include "system.h"
 #include "paging.h"
 
-#define FORKED -1
+#define ZOMBIE -1
+#define FORKED 0
 #define READY 1
-#define RUNNING 2
-#define ZOMBIE 0
-#define WAITING 3
+#define WAITING 2
+#define RUNNING 3
 #define MASKABLE 4
 #define NOT_MASKABLE 5
 

@@ -10,5 +10,10 @@ void move_csr(void);
 
 void printf(char* string, int arg);
 void line();
+void key_handler(char scancode, char c);
+
+/* Construct window */
+void header();
+void window_install();
 
 #endif

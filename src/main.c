@@ -29,6 +29,7 @@ int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
   irq_install();
   /* Video Output */
   init_video();
+  window_install();
   /* Keyboard */
   keyboard_install();
   /* Support Tasking */
@@ -37,38 +38,18 @@ int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
   initialise_paging();
   initialise_tasking();
 
+  set_window_title("Colin & Joshua's Kernel");
+
   /* Support RING3 */
   initialise_syscalls();
   //switch_to_user_mode();
 
-  putch("║");
-  putch("\n");
-  // int i, j;
-  // for (i = 0; i < 16; i++) {
-  //   for (j = 0; j < 80; j++) {
-  //     puts("@");
-  //   }
-  //   puts("\n");
-  // }
+  int i = 0;
+  for (i = 0; i < 20; i++) {
+    int k;
+    for (k = 0; k < 77; k++)
+      putch("@");
 
-  halt();
-  // int pid = fork();
-  // syscall_printf("PID : [%x]\n", pid);
-  // if (pid > 0) {
-  //   int i = 0;
-  //   int sum = 0;
-  //   for (int i = 0; i < 1000; i++)
-  //    sum++;
-  //   syscall_printf("Final SUM (Panret): [%x]\n", sum);
-  // }
-  // else {
-  //   int i = 0;
-  //   int sum = 0;
-  //   for (int i = 0; i < 1000; i++)
-  //    sum++;
-  //   syscall_printf("Final SUM (Child) : [%x]\n", sum);
-  //   syscall_halt(">...<");
-  // }
-
+  }
   return 0;
 }

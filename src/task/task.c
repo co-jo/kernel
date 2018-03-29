@@ -120,13 +120,13 @@ void switch_task()
   // Loads Page and looks at associated FRAME
   unsigned int physical = get_physical(current_directory->phys_tables);
   // If we just forked we want to JMP to new entry; Else switch by RET
-  unsigned int eip = 0;
+  unsigned int state = current_task->state;
 
   if(current_task->state == FORKED) {
-    eip = current_task->eip;
     current_task->state = READY;
   }
-  perform_task_switch(eip, physical, current_task->ebp, current_task->esp);
+
+  perform_task_switch(state, physical, current_task->ebp, current_task->esp);
 
   // Hopefully by instead of JMPing on each switch (only during fork)
   // We enter switch save T1's execution and eventually pick back up
@@ -143,6 +143,7 @@ task_t *create_init_task()
   task->id = process_count++;
   task->stack = STACK_START;
   task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE;
+  task->state = READY;
   task->esp = task->ebp = task->eip = task->next = task->user = 0;
   return task;
 }
@@ -155,6 +156,7 @@ task_t *create_task()
   task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE;
   task->id = process_count++;
   task->esp = task->ebp = task->eip = task->next = task->user = 0;
+  task->state = FORKED;
   return task;
 }
 
@@ -175,7 +177,6 @@ int pfork()
   child->ebp = parent->ebp;
   child->esp = parent->esp;
   child->eip = parent->eip;
-  child->state = FORKED;
   child->eax = 0x0;
 
   // int size = FRAME_SIZE * 2;
@@ -216,5 +217,5 @@ void switch_to_user_mode()
       push $1f; \
       iret; \
       1: \
-      ");
+  ");
 }

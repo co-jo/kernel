@@ -44,7 +44,38 @@ unsigned char kbdus[128] =
   0,	                                                        // All other keys are undefined
 };
 
+static void handle(char scancode)
+{
+  if (scancode == 0x48)
+    return;
+  if (scancode == 0x4B)
+    return;
+  if (scancode == 0x4D)
+    return;
+  if (scancode == 0x50)
+    return;
+  if (scancode == 0xE)
+    return;
+}
 
+unsigned char special_keys[32] = {
+  0x48, // Up Arrow
+  0x4B, // Left Arrow
+  0x4D, // Right Arrow
+  0x50, // Down Arrow
+  0xE,  // Backspace
+  0x1C  // Newline
+};
+
+static int special_key(char scancode)
+{
+  int i;
+  for (i = 0; i < 32; i++)
+    if (special_keys[i] == scancode)
+      return 1;
+
+  return 0;
+}
 /* Handles the keyboard interrupt */
 void keyboard_handler(struct regs *r)
 {
@@ -66,15 +97,8 @@ void keyboard_handler(struct regs *r)
      *  hold a key down, you will get repeated key press
      *  interrupts. */
 
-    /* Just to show you how this works, we simply translate
-     *  the keyboard scancode into an ASCII value, and then
-     *  display it to the screen. You can get creative and
-     *  use some flags to see if a shift is pressed and use a
-     *  different layout, or you can add another 128 entries
-     *  to the above layout to correspond to 'shift' being
-     *  held. If shift is held using the larger lookup table,
-     *  you would add 128 to the scancode when you look for it */
-    putch(kbdus[scancode]);
+//    printf("Scancode: [%x]\n", scancode);
+      key_handler(scancode, kbdus[scancode]);
   }
 }
 
