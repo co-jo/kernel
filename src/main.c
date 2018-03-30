@@ -64,5 +64,7 @@ int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
    for (i = 0; i < 100; i++) {
     puts("Hello\n");
    }
+
+  puts("World\n");
   return 0;
 }

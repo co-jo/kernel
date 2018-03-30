@@ -1,7 +1,7 @@
 #include "system.h"
 #include "scrn.h"
 #define map(i, j) (i * 80 + j)
-#define lmap(y) (y % 200)
+#define line(y) (y % 200)
 
 /* These define our textpointer, our background and foreground
  *  colors (attributes), and x and y cursor coordinates */
@@ -10,12 +10,15 @@ unsigned short *textmemptr;
 unsigned short (*textmap)[25];
 int attrib = 0x0F;
 
+// Where should we print next character (In relation to DMA)
 int offset_x = 2, offset_y= 3;
+// The current position of our cursor
 int csr_x = 0, csr_y = 0;
-int current_line = 3;
+// Where should the top and bottom be if we are scrolling
+int top = 0, bottom = 0;
 
 // Main window buffer
-unsigned short *buffer[200][78];
+unsigned short *buffer[200][80];
 
 unsigned short *input_buff;                 // PTR to actual place in mem
 unsigned char input_chars[75] = { 0 };   // Buffer to retrieve lower 8 bits
@@ -30,21 +33,16 @@ void scroll(void)
    *  backcolor too */
   unsigned blank = 0x20 | (attrib << 8);
 
-  // To scroll down - cursor must be below and reach
-  if(lmap(offset_y) >= 22 && csr_y > 3)
-  {
+  // Scroll Down - When text is overflowing view
+  if(line(offset_y) >= 22 && csr_y > 3) {
 
   }
-  if (offset_y < 0)
-  {
-    /* Move the current text chunk that makes up the screen
-     *  back in the buffer by a line */
-    temp = offset_y + 25 + 1;
-    memcpy (textmemptr, textmemptr + temp * 80, (25 - temp) * 80 * 2);
+  // Scroll Up - If up-arr is pressed and and top of window
+  if (csr_y == 3) {
 
-    /* Finally, we set the chunk of memory that occupies
-     *  the last line of text to our 'blank' character */
-    offset_y = 0;
+  }
+  if (csr_y == 23) {
+
   }
 }
 
