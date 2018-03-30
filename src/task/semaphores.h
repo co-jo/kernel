@@ -4,18 +4,17 @@
 #include "task.h"
 
 struct sem_t {
-    unsigned int id;
+    int id;
+    unsigned int size;
+    unsigned int num_held;
+    int closing;
     task_t *wait_list;
-    task_t *hold_list;
+    task_t *wait_list_end;
+    int *tasks_held;
+    struct sem_t *next;
+    struct sem_t *prev;
 };
 typedef struct sem_t sem_t;
-
-struct sem_list_t {
-    sem_t* sem;
-    struct sem_list_t *prev;
-    struct sem_list_t *next;
-};
-typedef struct sem_list_t sem_list_t;
 
 //   A semaphore must be initialized by open_sem() before it can be used.
 //   Processes waiting on a semaphore are resumed on a first-come first-served
@@ -44,5 +43,8 @@ int signal(int s);
 // Close the semaphore s and release any associated resources. If s is invalid then
 //   return 0, otherwise the semaphore id.
 int close_sem(int s);
+
+// Gets the semaphore with identifier s
+sem_t *find_sem(int s);
 
 #endif

@@ -17,6 +17,7 @@ void timer_handler(regs_t *r)
   if (timer_ticks % frequency == 0)
   {
     timer_ticks = 0;
+    update_sleeping_tasks();
     reprioritize();
     switch_task();
   }

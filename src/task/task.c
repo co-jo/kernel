@@ -8,6 +8,8 @@
 #include "kheap.h"
 #include "system.h"
 
+#define SLEEP_MAGIC 85
+
 // The currently running task.
 volatile task_t *current_task;
 
@@ -339,7 +341,7 @@ void cleanup_task(task_t *task) { }
 int sleep(unsigned int secs)
 {
     task_t *sleeping = dequeue_task();
-    sleeping->sleep_time = secs;
+    sleeping->sleep_time = secs * SLEEP_MAGIC; 
     sleeping->state = SLEEPING;
 
     sleeping->next = sleep_list;
@@ -353,7 +355,47 @@ int sleep(unsigned int secs)
 
 void update_sleeping_tasks()
 {
+    task_t *temp = (task_t*)sleep_list;
+    task_t *waking_task;
+    
+    while (temp) {
+        --(temp->sleep_time);
+        if (temp->sleep_time <= 0) {         // if we're done sleeping, remove from the list
+            waking_task = temp;
+            if (!waking_task->prev) {               // we're at the start of the list in this case
+                sleep_list = waking_task->next;
+                sleep_list->prev = 0;
+            } else {                         // else we're in the middle of the list
+                waking_task->prev->next = waking_task->next;
+                waking_task->next->prev = waking_task->prev;
+            }
+            waking_task->prev = 0;
+            waking_task->next = 0;
+            waking_task->sleep_time = 0;
+            enqueue_task(waking_task);
+        }
+        temp = temp->next;
+    }
+}
 
+task_t *remove_task_from_list(int pid, task_t *list)
+{
+    task_t *temp;
+    for (temp = list; temp && temp->id != pid; temp = temp->next);
+    if (temp) {
+        temp->prev->next = temp->next;
+        temp->next->prev = temp->prev;
+        temp->next = 0;
+        temp->prev = 0;
+    }
+    return temp; // returns null if pid not found
+}
+
+int contains_task(int pid, task_t *list)
+{
+    task_t *temp;
+    for (temp = list; temp && temp->id != pid; temp = temp->next);
+    return temp ? 1 : 0;
 }
 
 int getpid()

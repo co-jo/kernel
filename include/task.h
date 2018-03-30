@@ -74,4 +74,8 @@ task_t *dequeue_task();
 
 int sleep(unsigned int secs);
 
+task_t *remove_task_from_list(int pid, task_t *list);
+
+int contains_task(int pid, task_t *list);
+
 #endif

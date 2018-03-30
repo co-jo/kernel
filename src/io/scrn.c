@@ -395,3 +395,18 @@ void init_video(void)
   textmap = (void *)textmemptr;
   cls();
 }
+
+void print(const char *msg)
+{
+    puts(msg);
+}
+
+void print_dec(unsigned int value)
+{
+    printf("%d", value);
+}
+
+void print_hex(unsigned int value)
+{
+    printf("%x", value);
+}
