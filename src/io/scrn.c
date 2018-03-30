@@ -1,7 +1,7 @@
 #include "system.h"
 #include "scrn.h"
 #define map(i, j) (i * 80 + j)
-#define line(y) (y % 200)
+#define scrn_line(y) (y % 200)
 
 /* These define our textpointer, our background and foreground
  *  colors (attributes), and x and y cursor coordinates */
@@ -34,12 +34,12 @@ void scroll(void)
   unsigned blank = 0x20 | (attrib << 8);
 
   // Scroll Down - When text is overflowing view
-  if(line(offset_y) >= 22 && csr_y > 3) {
+  if(scrn_line(offset_y) >= 22 && csr_y > 3) {
 
   }
   // Scroll Up - If up-arr is pressed and and top of window
   if (csr_y == 3) {
-
+    gdb();
   }
   if (csr_y == 23) {
 
