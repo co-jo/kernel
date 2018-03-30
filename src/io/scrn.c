@@ -18,13 +18,38 @@ int csr_x = 0, csr_y = 0;
 int top = 0, bottom = 0;
 
 // Main window buffer
-unsigned short *buffer[200][80];
+unsigned short *buffer[200][80] = { 0 };
 
 unsigned short *input_buff;                 // PTR to actual place in mem
 unsigned char input_chars[75] = { 0 };   // Buffer to retrieve lower 8 bits
 //
 // char buffer[1000][80] = { 0 };
 /* Scrolls the screen */
+
+void paint()
+{
+  int i;
+  for (i = 2; i < 78; i++) {
+    unsigned int *where = textmemptr + (scrn_line(offset_y) * 80 + offset_x);
+    *where = buffer[top][i];
+  }
+  // memcpy(textmemptr, &buffer[top], 19 * 80 * 2);
+}
+
+void uscroll()
+{
+  top--;
+  paint();
+  move_csr();
+}
+
+void dscroll()
+{
+  top++;
+  paint();
+  move_csr();
+}
+
 void scroll(void)
 {
   unsigned temp;
@@ -34,16 +59,11 @@ void scroll(void)
   unsigned blank = 0x20 | (attrib << 8);
 
   // Scroll Down - When text is overflowing view
-  if(scrn_line(offset_y) >= 22 && csr_y > 3) {
-
+  if(scrn_line(offset_y) >= 21) {
+    paint();
+    // memsetw (textmemptr + scrn_line(offset_y) * 80, blank, 80);
   }
-  // Scroll Up - If up-arr is pressed and and top of window
-  if (csr_y == 3) {
-    gdb();
-  }
-  if (csr_y == 23) {
-
-  }
+  // Up arrow - Scroll Up
 }
 
 /* Updates the hardware cursor: the little blinking line
@@ -127,7 +147,7 @@ void putch(unsigned char c)
 
   /* If the cursor has reached the edge of the screen's width, we
    *  insert a new line in there */
-  if(offset_x >= 79) {
+  if(offset_x >= 78) {
     offset_x = 2;
     offset_y++;
   }
@@ -261,7 +281,13 @@ void key_handler(char scancode, char val)
   }
   // Move Cursor Up
   else if (scancode == 0x48) {
-    if (csr_y > 2) csr_y--;
+    if (csr_y > 3) {
+      csr_y--;
+      top = offset_y - 19;
+    }
+    else {
+      uscroll();
+    }
   }
   // Move Cursor Left
   else if (scancode == 0x4B) {
@@ -273,7 +299,12 @@ void key_handler(char scancode, char val)
   }
   // Move Cursor Down
   else if (scancode == 0x50) {
-    if (csr_y < 23) csr_y++;
+    if (csr_y < 22) {
+      csr_y++;
+    }
+    else {
+      dscroll();
+    }
   }
   // Backspace
   else if (scancode == 0x1C) {

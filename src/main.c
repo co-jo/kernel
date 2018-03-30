@@ -61,10 +61,9 @@ int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
   //   printf("CSUM: [%d]\n", sum);
   // }
   int i = 0;
-   for (i = 0; i < 100; i++) {
-    puts("Hello\n");
+   for (i = 0; i < 50; i++) {
+     printf("[%d] Hello - \n", i);
    }
 
-  puts("World\n");
   return 0;
 }
