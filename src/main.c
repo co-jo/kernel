@@ -43,7 +43,6 @@ int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
   /* Support RING3 */
   initialise_syscalls();
   //switch_to_user_mode();
-
   // int pid = fork();
   // if (pid > 0) {
   //   int i;
@@ -60,10 +59,9 @@ int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
   //   }
   //   printf("CSUM: [%d]\n", sum);
   // }
-  int i = 0;
-   for (i = 0; i < 50; i++) {
-     printf("[%d] Hello - \n", i);
-   }
 
+  assert_eq(0, 0, "EQ");
+  assert_eq(0, 0, "EQ");
+  assert_neq(1, 0, "NEQ");
   return 0;
 }
