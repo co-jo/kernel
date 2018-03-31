@@ -1,16 +1,15 @@
 #include "semaphores.h"
 #include "task.h"
 #include "kheap.h"
-
 extern volatile task_t *current_task;
-
 volatile sem_t *sem_list = 0;
 
 unsigned int sem_count = 0;
 
-int open_sem(int n) 
+int open_sem(int n)
 {
     sem_t *new_sem = kmalloc(sizeof(sem_t));
+
     new_sem->id = ++sem_count;
     new_sem->size = n;
     new_sem->num_held = 0;
@@ -39,9 +38,9 @@ sem_t *find_sem(int s)
     sem_t *temp = (sem_t*)sem_list;
     while (temp) {
         if (temp->id == s) {
-            return temp;
+          return temp;
         } else {
-            temp = temp->next;
+          temp = temp->next;
         }
     }
     return 0;
@@ -52,9 +51,9 @@ int wait(int s)
     sem_t *sem = find_sem(s);
     if (!sem) return 0;
 
-    // disable interrupts 
+    // disable interrupts
     asm volatile("cli");
-    
+
     // first check whether the current task is already holding the semaphore
     int already_held = 0, i;
     for (i = 0; i < sem->size; ++i) {
@@ -63,6 +62,7 @@ int wait(int s)
             break;
         }
     }
+
     if (already_held) {
         asm volatile("sti");
         return 0;
@@ -136,13 +136,13 @@ int signal(int s)
         sem->tasks_held[index] = next_task->id;
         enqueue_task(next_task);
         // yield if the new task has a higher priority
-        if (next_task->priority > current_task->priority) {
+        if (next_task->priority < current_task->priority) {
             yield();
         }
     } else {
         sem->num_held--;
     }
-    
+
     int id = sem->id;
     if ((sem->num_held==0) && sem->closing) {
         close_sem(s);
@@ -154,15 +154,14 @@ int signal(int s)
 int close_sem(int s)
 {
     sem_t *sem = find_sem(s);
-    if (!sem) 
-        return 0;
+    if (!sem) return 0;
 
     int id = sem->id;
-    if (sem->wait_list) { // some tasks are still using this semaphore
+    if (!sem->wait_list) { // some tasks are still using this semaphore
         sem->closing = 1; // let them clean up when they're done
         return id;
     }
-    
+
     sem->wait_list_end = 0;
     kfree(sem->tasks_held);
     sem->prev = sem->next;
