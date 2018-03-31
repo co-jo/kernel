@@ -15,7 +15,7 @@ void assert_neq(int value, int expected, const char *msg)
 {
   if (value != expected) {
     settextcolor(12, 0);
-    putch(22); putch(' ');
+    puts("! ");
     settextcolor(15, 0);
     puts(msg);
     putch('\n');

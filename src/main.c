@@ -60,8 +60,16 @@ int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
   //   printf("CSUM: [%d]\n", sum);
   // }
 
+  int i;
+  for (i = 0; i < 25; i++) {
+    if (i == 19)
+      gdb();
+    printf("Hello World [%d]\n", i);
+  }
+
   assert_eq(0, 0, "EQ");
   assert_eq(0, 0, "EQ");
   assert_neq(1, 0, "NEQ");
+
   return 0;
 }

@@ -2,7 +2,7 @@
 #include "scrn.h"
 
 #define MAP(i, j) (i * 80 + j)
-#define scrn_line(y) (y % 20)
+#define scrn_line(y) (y % 19)
 
 #define DOWN 1
 #define UP -1
@@ -31,7 +31,7 @@ int top = 0, bottom = 0;
 unsigned int user_scrolling = 0;
 
 // Main window buffer
-unsigned short *buffer[200][80] = { 0 };
+unsigned short *buffer[250][80] = { 0 };
 unsigned short *input_buff;                 // PTR to actual place in mem
 unsigned char input_chars[75] = { 0 };   // Buffer to retrieve lower 8 bits
 //
@@ -70,8 +70,9 @@ void fscroll(void)
   unsigned blank = 0x20 | (attrib << 8);
 
   // Scroll Down - When text is overflowing view
-  if(offset_y > NUM_LINES && csr_y > TOP_BOUND) {
-    int start = offset_y - NUM_LINES;
+  int cmp = (offset_y >= NUM_LINES && csr_y > TOP_BOUND);
+  if(offset_y >= NUM_LINES && csr_y > TOP_BOUND) {
+    int start = (offset_y - NUM_LINES);
     paint(start, offset_y);
   }
   // Up arrow - Scroll Up
@@ -116,6 +117,7 @@ void putch(unsigned char c)
 {
   unsigned short *where;
   unsigned att = attrib << 8;
+
 
   /* Handle a backspace, by moving the cursor back one space */
   if(c == 0x08) {
