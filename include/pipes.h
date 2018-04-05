@@ -19,7 +19,9 @@ typedef struct pipe {
     char buffer[BUF_SIZE];   // a pipe can store up to 1KB of unread data
     int read_offset;
     int write_offset;
-    int dirty;               // has the pipe been written to since the last read?
+    int free_space;
+    int sem;
+    int dirty;
     struct pipe *next;
     struct pipe *prev;
 } pipe_t;
@@ -41,6 +43,8 @@ unsigned int read(int fildes, void *buf, unsigned int nbyte);
 // Close the pipe specified by fildes. It returns INVALID_PIPE if the fildes
 //   is not valid.
 int close_pipe(int fildes);
+
+static pipe_t *find_pipe(int id);
 
 #endif
 

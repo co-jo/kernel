@@ -44,18 +44,12 @@ void outportb (unsigned short _port, unsigned char _data)
 
 int strcmp(const char *str1, const char *str2)
 {
-    while (str1 && (*str1 == *str2)) {
-	++str1;
-	++str2;
+    int i;
+    for(i = strlen(str1); i >= 0; i--) {
+        if (str1[i] != str2[i])
+            return 0;
     }
-    unsigned char ch1 = *(const unsigned char*)str1;
-    unsigned char ch2 = *(const unsigned char*)str2;
-    if (ch1 < ch2)
-	return -1;
-    else if (ch1 > ch2)
-	return 1;
-    else
-	return 0;
+    return 1;
 }
 
 void halt()
