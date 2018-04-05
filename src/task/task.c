@@ -138,11 +138,11 @@ void switch_task()
 
 task_t *create_init_task()
 {
-  task_t *task = (task_t*)kmalloc(sizeof(task_t));
+  task_t *task = (task_t*)kmalloc(sizeof(task_t), 0, 0);
   task->page_directory = current_directory;
   task->id = process_count++;
   task->stack = STACK_START;
-  task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE;
+  task->kernel_stack = kmalloc(KERNEL_STACK_SIZE, 1, 0) + KERNEL_STACK_SIZE;
   task->state = READY;
   task->esp = task->ebp = task->eip = task->next = task->user = 0;
   return task;
@@ -150,10 +150,10 @@ task_t *create_init_task()
 
 task_t *create_task()
 {
-  task_t *task = (task_t*)kmalloc(sizeof(task_t));
+  task_t *task = (task_t*)kmalloc(sizeof(task_t), 0, 0);
   task->page_directory = clone_directory(current_directory);
-  task->stack = kmalloc_a(2 * FRAME_SIZE) + 2 * FRAME_SIZE;
-  task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE;
+  task->stack = kmalloc(2 * FRAME_SIZE, 1, 0) + 2 * FRAME_SIZE;
+  task->kernel_stack = kmalloc(KERNEL_STACK_SIZE, 1, 0) + KERNEL_STACK_SIZE;
   task->id = process_count++;
   task->esp = task->ebp = task->eip = task->next = task->user = 0;
   task->state = FORKED;

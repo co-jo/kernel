@@ -13,7 +13,7 @@ char standard_lessthan_predicate(type_t a, type_t b)
 ordered_array_t create_ordered_array(unsigned int max_size, lessthan_predicate_t less_than)
 {
     ordered_array_t to_ret;
-    to_ret.array = (void*)kmalloc(max_size*sizeof(type_t));
+    to_ret.array = (void*)kmalloc(max_size*sizeof(type_t), 0, 0);
     memset(to_ret.array, 0, max_size*sizeof(type_t));
     to_ret.size = 0;
     to_ret.max_size = max_size;

@@ -1,5 +1,9 @@
 #include "system.h"
 
+void  test_kit() {
+  memory_tests();
+}
+
 void assert_eq(int value, int expected, const char *msg)
 {
   if (value == expected) {

@@ -44,7 +44,7 @@ void outportb (unsigned short _port, unsigned char _data)
 
 void halt()
 {
-  asm volatile("hlt");
+  asm volatile("wait");
 }
 
 void cli(char *message)
@@ -55,4 +55,17 @@ void cli(char *message)
   for (;;);
 }
 
+int strcmp(char *one, char *two)
+{
+  int i;
+  for (i = strlen(one); i >= 0; i--) {
+    if (one[i] != two[i])
+      return 0;
+  }
+  return 1;
+}
 
+void shutdown()
+{
+
+}

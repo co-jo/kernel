@@ -46,13 +46,18 @@ extern unsigned short *memsetw(unsigned short *dest, unsigned short val, size_t 
 extern size_t strlen(const char *str);
 extern unsigned char inportb (unsigned short _port);
 extern void outportb (unsigned short _port, unsigned char _data);
+extern int strcmp(char *one, char *two);
+extern void trim(char *str);
 
 /* KEYBOARD.C */
-// extern void keyboard_install();
+extern void keyboard_install();
 
 /* HALT */
 void halt();
 void cli(char *message);
+
+/* Random Commands */
+void shutdown();
 
 // MACROS
 #define RD_EBP(MEM) asm volatile("mov %%ebp, %0":"=r"(MEM))

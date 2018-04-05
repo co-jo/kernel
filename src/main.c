@@ -33,7 +33,7 @@ int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
   /* Keyboard */
   keyboard_install();
   /* Support Tasking */
-  timer_install(18);
+  timer_install(100);
 
   initialise_paging();
   initialise_tasking();
@@ -42,34 +42,12 @@ int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
 
   /* Support RING3 */
   initialise_syscalls();
-  //switch_to_user_mode();
-  // int pid = fork();
-  // if (pid > 0) {
-  //   int i;
-  //   int sum = 0;
-  //   for (i = 0; i < 100000001; i++) {
-  //     sum++;
-  //   }
-  //   printf("PSUM: [%d]\n", sum);
-  // } else {
-  //   int i;
-  //   int sum = 0;
-  //   for (i = 0; i < 100000000; i++) {
-  //     sum++;
-  //   }
-  //   printf("CSUM: [%d]\n", sum);
-  // }
 
-  int i;
-  for (i = 0; i < 25; i++) {
-    if (i == 19)
-      gdb();
-    printf("Hello World [%d]\n", i);
-  }
+  /* Run Tests */
+  test_kit();
 
-  assert_eq(0, 0, "EQ");
-  assert_eq(0, 0, "EQ");
-  assert_neq(1, 0, "NEQ");
+  /* User Program */
+  // user();
 
   return 0;
 }

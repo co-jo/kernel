@@ -13,9 +13,11 @@
 #define NUM_LINES 19
 #define INPUT_START 4
 
+#define BUFF_SIZE 1000
 /* These define our textpointer, our background and foreground
  *  colors (attributes), and x and y cursor coordinates */
 unsigned short *textmemptr;
+unsigned short *inputmemptr;
 /* Make it easy to map text to memory */
 unsigned short (*textmap)[25];
 int attrib = 0x0F;
@@ -31,12 +33,8 @@ int top = 0, bottom = 0;
 unsigned int user_scrolling = 0;
 
 // Main window buffer
-unsigned short *buffer[250][80] = { 0 };
-unsigned short *input_buff;                 // PTR to actual place in mem
+unsigned short *buffer[BUFF_SIZE][80] = { 0 };
 unsigned char input_chars[75] = { 0 };   // Buffer to retrieve lower 8 bits
-//
-// char buffer[1000][80] = { 0 };
-/* Scrolls the screen */
 
 void paint(int start, int end)
 {
@@ -48,9 +46,9 @@ void paint(int start, int end)
     }
     start++;
   }
-  // memcpy(textmemptr, &buffer[top], 19 * 80 * 2);
 }
 
+// User scroll handler
 void scroll(int direction)
 {
   if (top + direction >= 0 && bottom + direction < offset_y) {
@@ -60,22 +58,14 @@ void scroll(int direction)
   }
 }
 
-
+// Frame scroll - Kernel induced scrolling
 void fscroll(void)
 {
-  unsigned temp;
-
-  /* A blank is defined as a space... we need to give it
-   *  backcolor too */
-  unsigned blank = 0x20 | (attrib << 8);
-
   // Scroll Down - When text is overflowing view
-  int cmp = (offset_y >= NUM_LINES && csr_y > TOP_BOUND);
   if(offset_y >= NUM_LINES && csr_y > TOP_BOUND) {
     int start = (offset_y - NUM_LINES);
     paint(start, offset_y);
   }
-  // Up arrow - Scroll Up
 }
 
 /* Updates the hardware cursor: the little blinking line
@@ -118,8 +108,6 @@ void putch(unsigned char c)
   unsigned short *where;
   unsigned att = attrib << 8;
 
-
-  /* Handle a backspace, by moving the cursor back one space */
   if(c == 0x08) {
     if(offset_x != 0) offset_x--;
   }
@@ -128,39 +116,27 @@ void putch(unsigned char c)
   else if(c == 0x09) {
     offset_x = (offset_x + 8) & ~(8 - 1);
   }
-  /* Handles a 'Carriage Return', which simply brings the
-   *  cursor back to the margin */
   else if(c == '\r') {
     offset_x = LEFT_BOUND;
   }
-  /* We handle our newlines the way DOS and the BIOS do: we
-   *  treat it as if a 'CR' was also there, so we bring the
-   *  cursor to the margin and we increment the 'y' value */
   else if(c == '\n') {
     offset_x = LEFT_BOUND;
     offset_y++;
   }
-  /* Any character greater than and including a space, is a
-   *  printable character. The equation for finding the index
-   *  in a linear chunk of memory can be represented by:
-   *  Index = [(y * width) + x] */
   else if(c >= ' ' || c == 22 || c == 28) {
     unsigned short line = scrn_line(offset_y);
     // Remove brackets = Bug (Adds to itself after returning)
     where = textmemptr + MAP((line + TOP_BOUND), offset_x);
     *where = c | att;	/* Character AND attributes: color */
-    buffer[offset_y][offset_x] = *where;
+    buffer[offset_y % BUFF_SIZE][offset_x] = *where;
     offset_x++;
   }
 
-  /* If the cursor has reached the edge of the screen's width, we
-   *  insert a new line in there */
   if(offset_x >= RIGHT_BOUND) {
     offset_x = LEFT_BOUND;
     offset_y++;
   }
 
-  /* Scroll the screen if needed, and finally move the cursor */
   fscroll();
   move_csr();
 }
@@ -175,7 +151,6 @@ void puts(char *text)
 }
 
 /* Takes in some arg, and appends new line char */
-
 void printf(char *string, int arg)
 {
   int k = 0;
@@ -257,23 +232,13 @@ void shift_left()
   }
 }
 
-// void shift_right()
-// {
-//   int i;
-//   unsigned int *where;
-//   for (i = 77; i > csr_x; i--) {
-//     where = textmemptr + MAP(csr_y, i);
-//     *where = *(textmemptr + MAP(csr_y, i - 1)) | (attrib << 8);
-//     count++;
-//   }
-// }
-//
-
 static void load_buff()
 {
   int i;
-  for (i = 0; i < 75; i++)
-    input_chars[i] = input_buff[i];
+  for (i = 0; i < 75; i++) {
+    input_chars[i] = inputmemptr[i];
+  }
+  input_chars[csr_x - INPUT_START] = '\0';
 }
 
 void key_handler(char scancode, char val)
@@ -323,13 +288,19 @@ void key_handler(char scancode, char val)
       scroll(DOWN);
     }
   }
-  // Backspace
+  // Enter Key
   else if (scancode == 0x1C) {
+    unsigned blank = 0x20 | (attrib << 8);
+    // Load characters typed into input_chars
     load_buff();
-    // Clear current contents
-    memsetw(textmemptr + MAP(1, 1), 0, 78);
+    // Clear current contents of header
+    memsetw(textmemptr + MAP(1, 1), blank, 78);
     set_window_title(input_chars);
-    return;
+
+    exec_cmd(input_chars);
+    // Clear contents of input buffer
+    memsetw(inputmemptr, blank, 75);
+    csr_x = INPUT_START;
   }
   // Spacebar
   else if (scancode == 0x39) {
@@ -337,7 +308,7 @@ void key_handler(char scancode, char val)
     memsetw(textmemptr + MAP(csr_y, csr_x), ' ' | att, 1);
     csr_x++;
   }
-  else if (val > ' ' && csr_x < RIGHT_BOUND) {
+  else if (csr_y == BOT_BOUND + 1) {
     unsigned short att = attrib << 8;
     memsetw(textmemptr + MAP(csr_y, csr_x), val | att, 1);
     csr_x++;
@@ -349,12 +320,15 @@ void set_window_title(unsigned char *msg)
 {
   int i;
   int offset = 1;
-  unsigned att = attrib << 8;
+  unsigned blank = 0x20 | (attrib << 8);
+  unsigned red = (12) << 8;
   unsigned int *where;
+  // Clear
+  memsetw(textmemptr + MAP(1,1), blank, 78);
   // Write
   for (i = offset; i <= strlen(msg); i++) {
     where = textmemptr + MAP(1, i + 1);
-    *where = msg[i - offset] | att;
+    *where = msg[i - offset] | red;
   }
 }
 
@@ -423,13 +397,11 @@ void window_install()
 
   move_csr();
 }
-
-
 /* Sets our text-mode VGA pointer, then clears the screen for us */
 void init_video(void)
 {
   textmemptr = (unsigned short *)0xB8000;
-  input_buff = textmemptr + MAP(23, 4);
+  inputmemptr = textmemptr + MAP(23, 4);
   textmap = (void *)textmemptr;
   cls();
 }

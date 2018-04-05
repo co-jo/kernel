@@ -14,7 +14,7 @@ page_directory_t *current_directory;
 
 // A bitset of frames - used or free.
 unsigned int *frames;
-
+unsigned int pages_allocated = 0;
 // Defined in kheap.c
 extern unsigned placement_address;
 extern heap_t *kheap;
@@ -84,14 +84,14 @@ void free_frame(page_t *page)
 page_directory_t *create_initial_directory()
 {
   int size = sizeof(page_directory_t);
-  kernel_directory = (page_directory_t*)kmalloc_a(size);
+  kernel_directory = (page_directory_t*)kmalloc(size, 1, 0);
   memset(kernel_directory, 0, size);
 }
 
 unsigned int* create_frame_index()
 {
   int size = NUM_FRAMES * sizeof(int) / 32;
-  unsigned int *address = kmalloc_a(size);
+  unsigned int *address = kmalloc(size, 1, 0);
   memset(address, 0, size);
   return address;
 }
@@ -115,7 +115,7 @@ void identity_map()
 void map_first_table()
 {
   unsigned int phys;
-  page_table_t *table = (page_table_t *)kmalloc_ap(sizeof(page_table_t), &phys);
+  page_table_t *table = (page_table_t *)kmalloc(sizeof(page_table_t), 1, &phys);
   // Set page pointers to 0
   memset(table, 0, FRAME_SIZE);
   kernel_directory->tables[0] = phys;
@@ -142,7 +142,7 @@ void initialise_paging()
   // Frame Index
   frames = create_frame_index();
   // KHEAP Pointer
-  kheap = kmalloc(sizeof(heap_t));
+  kheap = kmalloc(sizeof(heap_t), 0, 0);
   memset(kheap, 0, sizeof(heap_t));
 
   // Allocate our first directory
@@ -211,7 +211,7 @@ page_t *get_page(unsigned int address, page_directory_t *dir, int flags)
 void alloc_table(page_directory_t *dir, int tid, int flags)
 {
   unsigned int phys;
-  page_table_t *table = (page_table_t *)kmalloc_ap(sizeof(page_table_t), &phys);
+  page_table_t *table = (page_table_t *)kmalloc(sizeof(page_table_t), 1, &phys);
   // Set page pointers to 0
   memset(table, 0, FRAME_SIZE);
   // This table also needs to be mapped to a frame;
@@ -229,6 +229,7 @@ void alloc_page(page_t *page, int flags)
     return;
   }
   else {
+    pages_allocated++;
     int frame = first_frame();
     set_frame(frame);
     page->frame = frame;
@@ -259,7 +260,8 @@ void page_fault(regs_t *regs)
   printf("US?: [%x] ", us);
   printf("RS?: [%x] ", reserved);
   printf("IF?: [%x]\n", id);
-  halt("...");
+
+  asm volatile("hlt");
 }
 
 void clone_table(page_directory_t *dest, page_table_t *src, int tid)
@@ -295,7 +297,7 @@ page_directory_t *clone_directory(page_directory_t *src)
   // Frame of where the page directory is placed
   int size = sizeof(page_directory_t);
   // Make a new page directory and obtain its physical address.
-  page_directory_t *dir = (page_directory_t*)kmalloc_ap(size, &phys);
+  page_directory_t *dir = (page_directory_t*)kmalloc(size, 1, &phys);
   memset(dir, 0, size);
 
   /* Link Kernel Tables, else copy */
