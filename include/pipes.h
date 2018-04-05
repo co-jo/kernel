@@ -13,12 +13,15 @@
 
 #define INVALID_PIPE -1
 #define BUF_SIZE 1024
-#define MAX_PIPES 256
 
 typedef struct pipe {
+    int id;
     char buffer[BUF_SIZE];   // a pipe can store up to 1KB of unread data
     int read_offset;
     int write_offset;
+    int dirty;               // has the pipe been written to since the last read?
+    struct pipe *next;
+    struct pipe *prev;
 } pipe_t;
 
 // Initialize a new pipe and returns a descriptor. It returns INVALID_PIPE

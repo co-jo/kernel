@@ -2,15 +2,15 @@
 #include "task.h"
 #include "kheap.h"
 extern volatile task_t *current_task;
-volatile sem_t *sem_list = 0;
+volatile sem_t *_sem_list = 0;
 
-unsigned int sem_count = 0;
+unsigned int _sem_count = 0;
 
 int open_sem(int n)
 {
     sem_t *new_sem = kmalloc(sizeof(sem_t));
 
-    new_sem->id = ++sem_count;
+    new_sem->id = ++_sem_count;
     new_sem->size = n;
     new_sem->num_held = 0;
     new_sem->wait_list = 0;
@@ -22,20 +22,20 @@ int open_sem(int n)
         new_sem->tasks_held[i] = 0;
     }
     new_sem->prev = 0;
-    if (!sem_list) {
-        sem_list = new_sem;
+    if (!_sem_list) {
+        _sem_list = new_sem;
         new_sem->next = 0;
     } else {
-        sem_list->prev = new_sem;
-        new_sem->next = sem_list;
-        sem_list = new_sem;
+        _sem_list->prev = new_sem;
+        new_sem->next = _sem_list;
+        _sem_list = new_sem;
     }
     return new_sem->id;
 }
 
-sem_t *find_sem(int s)
+static sem_t *find_sem(int s)
 {
-    sem_t *temp = (sem_t*)sem_list;
+    sem_t *temp = (sem_t*)_sem_list;
     while (temp) {
         if (temp->id == s) {
           return temp;

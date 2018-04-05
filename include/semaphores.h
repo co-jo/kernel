@@ -45,6 +45,6 @@ int signal(int s);
 int close_sem(int s);
 
 // Gets the semaphore with identifier s
-sem_t *find_sem(int s);
+static sem_t *find_sem(int s);
 
 #endif
