@@ -42,6 +42,22 @@ void outportb (unsigned short _port, unsigned char _data)
     __asm__ __volatile__ ("outb %1, %0" : : "dN" (_port), "a" (_data));
 }
 
+int strcmp(const char *str1, const char *str2)
+{
+    while (str1 && (*str1 == *str2)) {
+	++str1;
+	++str2;
+    }
+    unsigned char ch1 = *(const unsigned char*)str1;
+    unsigned char ch2 = *(const unsigned char*)str2;
+    if (ch1 < ch2)
+	return -1;
+    else if (ch1 > ch2)
+	return 1;
+    else
+	return 0;
+}
+
 void halt()
 {
   asm volatile("hlt");
