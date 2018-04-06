@@ -64,7 +64,8 @@ unsigned char special_keys[32] = {
   0x4D, // Right Arrow
   0x50, // Down Arrow
   0xE,  // Backspace
-  0x1C  // Newline
+  0x1C, // Newline
+  0x2A, // Shift
 };
 
 static int special_key(char scancode)
@@ -88,16 +89,11 @@ void keyboard_handler(struct regs *r)
    *  set, that means that a key has just been released */
   if (scancode & 0x80)
   {
-    /* You can use this one to see if the user released the
-     *  shift, alt, or control keys... */
+   // Shift Released
+   if (scancode == 0xAA) key_handler(scancode, kbdus[0x2A]);
   }
   else
   {
-    /* Here, a key was just pressed. Please note that if you
-     *  hold a key down, you will get repeated key press
-     *  interrupts. */
-
-//    printf("Scancode: [%x]\n", scancode);
       key_handler(scancode, kbdus[scancode]);
   }
 }

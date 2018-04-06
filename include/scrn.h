@@ -10,7 +10,7 @@ void move_csr(void);
 
 void printf(char* string, int arg);
 void line();
-void key_handler(char scancode, char c);
+void key_handler(unsigned short scancode, char c);
 
 /* Construct window */
 void header();

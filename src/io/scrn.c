@@ -30,6 +30,7 @@ int csr_x = 0, csr_y = 0;
 // Where should the top and bottom be if we are scrolling
 int top = 0, bottom = 0;
 
+unsigned int shifted = 0;
 unsigned int user_scrolling = 0;
 
 // Main window buffer
@@ -241,7 +242,7 @@ static void load_buff()
   input_chars[csr_x - INPUT_START] = '\0';
 }
 
-void key_handler(char scancode, char val)
+void key_handler(unsigned short scancode, char val)
 {
   // Delete char - Then shift over
   if (scancode == 0xE) {
@@ -308,11 +309,25 @@ void key_handler(char scancode, char val)
     memsetw(textmemptr + MAP(csr_y, csr_x), ' ' | att, 1);
     csr_x++;
   }
+  // Shit Modifier - Released
+  else if (scancode == 0xAA) {
+    shifted = 0;
+    return;
+  }
+  // Shift Modifier - Pressed
+  else if (scancode == 0x2A) {
+    shifted = 1;
+    return;
+  }
   else if (csr_y == BOT_BOUND + 1) {
     unsigned short att = attrib << 8;
+    if (shifted) {
+      val -= 32;
+    }
     memsetw(textmemptr + MAP(csr_y, csr_x), val | att, 1);
     csr_x++;
   }
+
   move_csr();
 }
 
