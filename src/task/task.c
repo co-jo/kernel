@@ -105,7 +105,6 @@ void move_stack(unsigned int base, unsigned int num_frames)
 // as if it was never switched. The eip is implict in the return;
 void switch_task()
 {
-  
   // If we haven't initialised tasking yet, just return.
   if (!current_task)
     return;
@@ -164,10 +163,10 @@ task_t *create_task()
   task->stack = kmalloc_a(2 * FRAME_SIZE) + 2 * FRAME_SIZE;
   task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE;
   task->id = process_count++;
-  task->esp = task->ebp = task->eip = task->next = task->user = 0;
   task->state = FORKED;
   task->priority = DEFAULT_PRIORITY;
   task->sleep_time = 0;
+  task->esp = task->ebp = task->eip = task->next = task->user = 0;
   return task;
 }
 

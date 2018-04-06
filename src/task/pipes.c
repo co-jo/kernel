@@ -71,7 +71,7 @@ unsigned int read(int fd, void *buf, unsigned int nbyte)
     wait(pipe->sem);
     int bytes_read = 0;
     while (!pipe->dirty); // wait for the pipe to be written to
-    
+
     int i;
     for (i = 0; (i < nbyte) && (((pipe->read_offset+i) % BUF_SIZE) != pipe->write_offset + 1); ++i) {
         ((char*)buf)[i] = pipe->buffer[pipe->read_offset];
@@ -110,7 +110,6 @@ static pipe_t *find_pipe(int fd)
     pipe_t *temp = (pipe_t*)_pipe_list;
     while (temp) {
         if (temp->id == fd) {
-            printf("Found pipe: %d\n", temp->id);
             return temp;
         } else {
             temp = temp->next;
