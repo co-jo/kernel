@@ -319,7 +319,7 @@ void key_handler(unsigned short scancode, char val)
     shifted = 1;
     return;
   }
-  else if (csr_y == BOT_BOUND + 1) {
+  else if (csr_y == BOT_BOUND + 1 && csr_x < RIGHT_BOUND) {
     unsigned short att = attrib << 8;
     if (shifted) {
       val -= 32;
