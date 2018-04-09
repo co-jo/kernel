@@ -59,6 +59,7 @@ unsigned int write(int fd, const void *buf, unsigned int nbyte)
         pipe->dirty = 1;
     }
     signal(pipe->sem); // signal that we're done
+
     return bytes_written;
 }
 
@@ -68,10 +69,16 @@ unsigned int read(int fd, void *buf, unsigned int nbyte)
     if (!pipe) {
         return INVALID_PIPE;
     }
-    wait(pipe->sem);
     int bytes_read = 0;
-    while (!pipe->dirty); // wait for the pipe to be written to
-    
+    // Waiting for a write..
+    while (!pipe->dirty){
+      yield();
+      // If pipe is closed while waiting
+      if (!find_pipe(fd)) return INVALID_PIPE;
+    }
+
+    // Can read - acquire sem to lock
+    wait(pipe->sem);
     int i;
     for (i = 0; (i < nbyte) && (((pipe->read_offset+i) % BUF_SIZE) != pipe->write_offset + 1); ++i) {
         ((char*)buf)[i] = pipe->buffer[pipe->read_offset];
@@ -79,8 +86,11 @@ unsigned int read(int fd, void *buf, unsigned int nbyte)
         ++bytes_read;
     }
     pipe->free_space += bytes_read;
-    pipe->dirty = 0;
+    if (pipe->free_space == BUF_SIZE) {
+      pipe->free_space;
+    }
     signal(pipe->sem);
+
     return bytes_read;
 }
 
@@ -98,9 +108,9 @@ int close_pipe(int fd)
     if (pipe->next) {
         pipe->next = pipe->prev;
     }
-
     pipe->next = 0;
     pipe->prev = 0;
+
     kfree(pipe);
     return 0;
 }
@@ -110,7 +120,6 @@ static pipe_t *find_pipe(int fd)
     pipe_t *temp = (pipe_t*)_pipe_list;
     while (temp) {
         if (temp->id == fd) {
-            printf("Found pipe: %d\n", temp->id);
             return temp;
         } else {
             temp = temp->next;

@@ -81,21 +81,21 @@ int wait(int s)
         }
         sem->num_held++;
         return sem->id;
-    } 
+    }
     else {
         // this semaphore does not have room left:
-        // remove it from the ready queue, add the task to the end of the wait queue, 
+        // remove it from the ready queue, add the task to the end of the wait queue,
         // and yield the processor
         task_t *waiting_task = dequeue_task();
         sem->wait_list_end->next = waiting_task;
         waiting_task->prev = sem->wait_list_end;
         sem->wait_list_end = waiting_task;
-        if (!sem->wait_list) 
+        if (!sem->wait_list)
             sem->wait_list = sem->wait_list_end;
 
         asm volatile("sti");
         yield();
-        
+
         // we'll return here after being put back in the ready queue
         // by the signal function signalling that there's free space in the semaphore
         return sem->id;

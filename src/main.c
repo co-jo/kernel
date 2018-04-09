@@ -22,6 +22,7 @@ void test_synch();
 void test_IPC();
 void assert_not_equal(unsigned int value, unsigned int expected, const char *msg);
 void assert_equal(unsigned int value, unsigned int expected, const char *msg);
+extern int nt;
 
 int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
 {
@@ -76,12 +77,15 @@ int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
   close_sem(sem);
   // exit();
   */
-  //test_synch();
-  test_IPC();
+  test_synch();
+  //test_IPC();
+  puts("Return Main..\n");
+
+  exit();
   return 0;
 }
 
-void test_synch() 
+void test_synch()
 {
     // assumes that no other forks have taken place earlier
     print("Testing synchronization...\n");
@@ -106,9 +110,13 @@ void test_synch()
     } else {
         assert_not_equal(wait(finish_sem), 0, "Aquiring finish_sem in child");
         assert_not_equal(wait(sem), 0, "Aquiring semaphore in child");
-        print("(Child) This message should come second\n");
-        assert_not_equal(signal(sem), 0, "Releasing semaphore in child");
-        assert_not_equal(signal(finish_sem), 0, "Releasing finish_sem in child");
+        print("(Child) This messaege should come second\n");
+        int res = signal(sem);
+        printf("Res : %x\n", res);
+        assert_not_equal(res, 0, "Rkeleasing semaphore in child");
+        res = signal(finish_sem);
+        printf("Res : %x\n", res);
+       assert_not_equal(res, 0, "Releasing finish_sem in child");
         exit();
     }
 
@@ -118,48 +126,48 @@ void test_synch()
     assert_not_equal(close_sem(sem), 0, "Closing semaphore");
 
     // testing non-binary semaphore
-    sem = open_sem(3);
-    assert_not_equal(sem, 0, "Opened new non-binary semaphore");
-    int child1 = kfork();
-    int child2 = kfork();
-    int pid = getpid();
+   // sem = open_sem(3);
+   // assert_not_equal(sem, 0, "Opened new non-binary semaphore");
+   // int child1 = kfork();
+   // int child2 = kfork();
+   // int pid = getpid();
 
-    switch (pid) {
-    case 1:
-        wait(finish_sem);
-        wait(sem);
-        print("Entered critical region on process 1\n");
-        setpriority(1, 9);
-        setpriority(5, 8);
-        yield();
-        signal(sem);
-        print("This should come second\n");
-        signal(finish_sem);
-        break;
-    case 3:
-        wait(sem);
-        print("Entered critical region on process 2\n");
-        break;
-    case 4:
-        wait(sem);
-        print("Entered critical region on process 3\n");
-        break;
-    case 5:
-        wait(sem);
-        print("Entered critical region on process 4\n");
-        print("This should come first\n");
-        break;
-    }
-    if (pid != 1) {
-        signal(sem);
-        wait(finish_sem);
-        signal(finish_sem);
-        exit();
-    }
-    wait(finish_sem);
-    signal(finish_sem);
-    close_sem(finish_sem);
-    assert_not_equal(close_sem(sem), 0, "Closing non-binary semaphore");
+   // switch (pid) {
+   // case 1:
+   //     wait(finish_sem);
+   //     wait(sem);
+   //     print("Entered critical region on process 1\n");
+   //     setpriority(1, 9);
+   //     setpriority(5, 8);
+   //     yield();
+   //     signal(sem);
+   //     print("This should come second\n");
+   //     signal(finish_sem);
+   //     break;
+   // case 3:
+   //     wait(sem);
+   //     print("Entered critical region on process 2\n");
+   //     break;
+   // case 4:
+   //     wait(sem);
+   //     print("Entered critical region on process 3\n");
+   //     break;
+   // case 5:
+   //     wait(sem);
+   //     print("Entered critical region on process 4\n");
+   //     print("This should come first\n");
+   //     break;
+   // }
+   // if (pid != 1) {
+   //     signal(sem);
+   //     wait(finish_sem);
+   //     signal(finish_sem);
+   //     exit();
+   // }
+   // wait(finish_sem);
+   // signal(finish_sem);
+   // close_sem(finish_sem);
+   // assert_not_equal(close_sem(sem), 0, "Closing non-binary semaphore");
 
     print("Completed synchronization testing...\n\n");
 }
@@ -174,20 +182,19 @@ void test_IPC() {
     int pipefd = open_pipe();
     assert_not_equal(pipefd, -1, "Created pipe");
     int child = fork();
-    if (child != 0) {
-        char out_buf[12] = "hello world\0";
-        int ret = write(pipefd, out_buf, 12);
-        assert_equal(ret, 12, "Wrote 12 bytes to pipe in parent");
-        char out_buf2[10] = "more data\0";
-        ret = write(pipefd, out_buf2, 10);
-        assert_equal(ret, 10, "Wrote 10 bytes to pipe in parent");
-        setpriority(1, 6); // lower parent priority and yield to ensure child is entered
-        yield();
+    if (child > 0) {
+        //puts("In Child..\n");
+         char out_buf[12] = "hello world\0";
+         int ret = write(pipefd, out_buf, 12);
+         assert_equal(ret, 12, "Wrote 12 bytes to pipe in parent");
+         char out_buf2[10] = "more data\0";
+         ret = write(pipefd, out_buf2, 10);
+         assert_equal(ret, 10, "Wrote 10 bytes to pipe in parent");
+         setpriority(1, 6); // lower parent priority and yield to ensure child is entered
     } else {
+        // puts("In Parent..\n");
         char in_buf[12];
         int ret = read(pipefd, in_buf, 12);
-        printf("BUF1 : %x\n", *in_buf);
-        puts(in_buf);
         assert_equal(ret, 12, "Read 12 bytes from pipe in child");
         assert_equal(strcmp(in_buf, "hello world"), 1, "Read bytes equal to written bytes1");
         char in_buf2[10];
@@ -195,23 +202,23 @@ void test_IPC() {
         printf("BUF %d\n", *in_buf2);
         assert_equal(ret, 10, "Read 10 bytes from pipe in child");
         assert_equal(strcmp(in_buf2, "more data"), 1, "Read bytes equal to written bytes2");
-        exit();
     }
 
-    assert_not_equal(close_pipe(pipefd), -1, "Closing pipe");
-
-    char buf[] = "abcd";
-    // close pipe doesn't return -1 when invalid pipe passed in
-    // assert_equal(close_pipe(100), -1, "Closing invalid pipe");
-    //assert_equal(write(100, buf, 4), 0, "Writing to invalid pipe"); 
-    //assert_equal(read(100, buf, 4), 0, "Reading from invalid pipe");
+    //close_pipe(pipefd);
+    //puts("After close pipe...\n");
+    char buf[4] = "abcd";
+    ////close pipe doesn't return -1 when invalid pipe passed in
+    assert_equal(close_pipe(100), -1, "Closing invalid pipe");
+    assert_equal(write(100, buf, 4), -1, "Writing to invalid pipe");
+    assert_equal(read(100, buf, 4), -1, "Reading from invalid pipe");
 
     /*
     int i;
     while (open_pipe() != -1);
-    assert_equal(0, 0, "Returns INVALID_PIPE when no pipes left"); 
+    assert_equal(1, 0, "Returns INVALID_PIPE when no pipes left");
     print("Completed Communication Testing...\n\n");
     */
+    exit();
 }
 
 void assert_not_equal(unsigned int value, unsigned int expected, const char *msg)
