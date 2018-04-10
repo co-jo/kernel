@@ -18,6 +18,8 @@ volatile task_t *ready_queue;
 
 // list of sleeping tasks
 volatile task_t *sleep_list;
+// Number of active threads
+volatile int nt = 0;
 
 // Some externs are needed to access members in paging.c...
 extern page_directory_t *kernel_directory;
@@ -29,7 +31,7 @@ extern heap_t *kheap;
 extern void perform_task_switch(unsigned int eip, unsigned int, unsigned int, unsigned int);
 
 // The next available process ID.
-int process_count = 1;
+int pid = 1;
 
 void initialise_tasking()
 {
@@ -119,6 +121,12 @@ void switch_task()
 
   // Getinitialise the next task to run.
   current_task = ready_queue;
+  // No tasks left
+  if (!nt) {
+    //print_ready_queue();
+    while(1);
+    return;
+  }
 
   current_directory = current_task->page_directory;
   set_kernel_stack(current_task->kernel_stack);
@@ -144,9 +152,10 @@ void switch_task()
 
 task_t *create_init_task()
 {
+  nt++;
   task_t *task = (task_t*)kmalloc(sizeof(task_t));
   task->page_directory = current_directory;
-  task->id = process_count++;
+  task->id = pid++;
   task->stack = STACK_START;
   task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE;
   task->state = READY;
@@ -158,11 +167,13 @@ task_t *create_init_task()
 
 task_t *create_task()
 {
+  nt++;
   task_t *task = (task_t*)kmalloc(sizeof(task_t));
   task->page_directory = clone_directory(current_directory);
   task->stack = kmalloc_a(2 * FRAME_SIZE) + 2 * FRAME_SIZE;
   task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE;
-  task->id = process_count++;
+  task->id = pid++;
+  task->esp = task->ebp = task->eip = task->next = task->user = 0;
   task->state = FORKED;
   task->priority = DEFAULT_PRIORITY;
   task->sleep_time = 0;
@@ -190,7 +201,9 @@ int pfork()
 
 void exit() {
     task_t *dying = dequeue_task();
-    dying->state = ZOMBIE;
+    if (dying) {
+      dying->state = ZOMBIE;
+    }
     yield();
 }
 
@@ -203,6 +216,8 @@ void reprioritize()
     // 1 is the 'highest' priority, 10 is the 'lowest'
     // meaning a greater priority value is actually lower priority :)
     // return immediately if the ready queue only has one task
+    if (!ready_queue) return;
+
     if (!ready_queue->next) {
         return;
     }
@@ -221,7 +236,7 @@ void reprioritize()
         tmp_task->next = first_task;
         first_task->prev = tmp_task;
         first_task->next = 0;
-    } 
+    }
     else {
         first_task->priority++;
         if (first_task->priority > first_task->next->priority) {
@@ -230,7 +245,7 @@ void reprioritize()
             tmp_task = tmp_task->next;
             // while tmp_task still has a higher priority than first_task
             while (first_task->priority > tmp_task->priority) {
-                if (tmp_task->next) 
+                if (tmp_task->next)
                     tmp_task = tmp_task->next;
                 else
                     break;
@@ -251,7 +266,7 @@ void reprioritize()
     return;
 }
 
-int setpriority(int pid, int new_priority) 
+int setpriority(int pid, int new_priority)
 {
     task_t *iter = (task_t*)ready_queue;
     // edge case: first task matches pid
@@ -326,21 +341,35 @@ void enqueue_task(task_t *task)
 task_t *dequeue_task()
 {
     // error check: current_task not set
+    task_t *temp;
     if (!current_task) return 0;
-    ready_queue = ready_queue->next;
-    if (ready_queue) {
-        ready_queue->prev = 0;
+    if (nt == 1) {
+      ready_queue = 0;
+      return current_task;
     }
-    current_task->next = 0;
+
+    for (temp = ready_queue; temp && temp->id != current_task->id; temp = temp->next);
+    if (temp) {
+        temp->prev->next = temp->next;
+        temp->next->prev = temp->prev;
+        temp->next = 0;
+        temp->prev = 0;
+    }
+
     return current_task;
 }
 
-void cleanup_task(task_t *task) { }
+void cleanup_task(task_t *task) {
+  task->next = 0;
+  task->prev = 0;
+  nt--;
+  kfree(task);
+}
 
 int sleep(unsigned int secs)
 {
     task_t *sleeping = dequeue_task();
-    sleeping->sleep_time = secs * SLEEP_MAGIC; 
+    sleeping->sleep_time = secs * SLEEP_MAGIC;
     sleeping->state = SLEEPING;
 
     sleeping->next = sleep_list;
@@ -356,7 +385,7 @@ void update_sleeping_tasks()
 {
     task_t *temp = (task_t*)sleep_list;
     task_t *waking_task;
-    
+
     while (temp) {
         --(temp->sleep_time);
         if (temp->sleep_time <= 0) {         // if we're done sleeping, remove from the list
@@ -407,12 +436,16 @@ void print_ready_queue()
     task_t *temp = (task_t*)ready_queue;
     int pos = 0;
     char *buf;
+    if (!temp)
+      puts("Ready Queue Empty!");
+
     while(temp) {
         printf("Task [%d]: ", temp->id);
         printf("Priority: [%d]\n", temp->priority);
         temp = temp->next;
     }
-    puts("\n");
+
+    putch("\n");
 }
 
 void switch_to_user_mode()

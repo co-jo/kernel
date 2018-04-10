@@ -4,7 +4,7 @@
 #include "semaphores.h"
 
 // INTERPROCESS COMMUNICATION:
-// 
+//
 // pipes are first-in-first-out bounded buffers. Elements are read in the same
 //   order as they were written. When writes overtake reads, the first unread
 //   element will be dropped. Thus, ordering is always preserved.
