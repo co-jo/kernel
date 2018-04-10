@@ -22,7 +22,6 @@ void test_synch();
 void test_IPC();
 void assert_not_equal(unsigned int value, unsigned int expected, const char *msg);
 void assert_equal(unsigned int value, unsigned int expected, const char *msg);
-extern int nt;
 
 int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
 {
@@ -106,17 +105,20 @@ void test_synch()
         setpriority(2,1);
         yield();
         print("(Parent) This message should come first\n");
-        assert_not_equal(signal(sem), 0, "Releasing semaphore in parent");
+        int sig = signal(sem);
+        assert_not_equal(sig, 0, "Releasing semaphore in parent");
     } else {
         assert_not_equal(wait(finish_sem), 0, "Aquiring finish_sem in child");
-        assert_not_equal(wait(sem), 0, "Aquiring semaphore in child");
+        int wsem = wait(sem);
+        assert_not_equal(wsem, 0, "Aquiring semaphore in child");
+        //print_wait_list(finish_sem);
         print("(Child) This messaege should come second\n");
+        //print_wait_list(sem);
         int res = signal(sem);
-        printf("Res : %x\n", res);
         assert_not_equal(res, 0, "Rkeleasing semaphore in child");
         res = signal(finish_sem);
-        printf("Res : %x\n", res);
-       assert_not_equal(res, 0, "Releasing finish_sem in child");
+        //printf("Res : %x\n", res);
+        assert_not_equal(res, 0, "Releasing finish_sem in child");
         exit();
     }
 
@@ -126,9 +128,9 @@ void test_synch()
     assert_not_equal(close_sem(sem), 0, "Closing semaphore");
 
     // testing non-binary semaphore
-   // sem = open_sem(3);
-   // assert_not_equal(sem, 0, "Opened new non-binary semaphore");
-   // int child1 = kfork();
+   sem = open_sem(3);
+   assert_not_equal(sem, 0, "Opened new non-binary semaphore");
+   int child1 = kfork();
    // int child2 = kfork();
    // int pid = getpid();
 

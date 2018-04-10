@@ -5,10 +5,17 @@ extern volatile task_t *current_task;
 volatile sem_t *_sem_list = 0;
 
 unsigned int _sem_count = 0;
+extern task_t *ready_queue;
 
 int open_sem(int n)
 {
     sem_t *new_sem = kmalloc(sizeof(sem_t));
+    new_sem->tasks_held = kmalloc(n * sizeof(int));
+    int i;
+    // This loop seems to override stuff within the new struct
+    for (i = 0; i < n; ++i) {
+        new_sem->tasks_held[i] = 0;
+    }
 
     new_sem->id = ++_sem_count;
     new_sem->size = n;
@@ -16,11 +23,7 @@ int open_sem(int n)
     new_sem->wait_list = 0;
     new_sem->wait_list_end = 0;
     new_sem->closing = 0;
-    new_sem->tasks_held = kmalloc(n * sizeof(int));
-    int i;
-    for (i = 0; i < n; ++i) {
-        new_sem->tasks_held[i] = 0;
-    }
+
     new_sem->prev = 0;
     if (!_sem_list) {
         _sem_list = new_sem;
@@ -30,6 +33,7 @@ int open_sem(int n)
         new_sem->next = _sem_list;
         _sem_list = new_sem;
     }
+
     return new_sem->id;
 }
 
@@ -71,6 +75,7 @@ int wait(int s)
     // this task isn't already holding this semaphore
     // check if the semaphore has any room left
     if (sem->num_held < sem->size) {
+        puts("Sem has space...\n");
         // the semaphore has room left, add this task id to the array of tasks holding this
         // semaphore and return the id
         for (i = 0; i < sem->size; ++i) {
@@ -86,7 +91,9 @@ int wait(int s)
         // this semaphore does not have room left:
         // remove it from the ready queue, add the task to the end of the wait queue,
         // and yield the processor
+        puts("Sem no space...\n");
         task_t *waiting_task = dequeue_task();
+
         sem->wait_list_end->next = waiting_task;
         waiting_task->prev = sem->wait_list_end;
         sem->wait_list_end = waiting_task;
@@ -94,6 +101,7 @@ int wait(int s)
             sem->wait_list = sem->wait_list_end;
 
         asm volatile("sti");
+
         yield();
 
         // we'll return here after being put back in the ready queue
@@ -120,6 +128,7 @@ int signal(int s)
             break;
         }
     }
+
     if (!held) return 0;
 
     // the task is holding the semaphore, so we can release it
@@ -149,6 +158,13 @@ int signal(int s)
     }
 
     return id;
+}
+
+void print_wait_list(int s){
+  sem_t *sem = find_sem(s);
+  int i;
+  for (i = 0; i < sem->size; i++)
+    printf("Sem : [%x]\n", sem->tasks_held[i]);
 }
 
 int close_sem(int s)

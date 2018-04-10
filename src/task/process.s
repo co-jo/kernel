@@ -8,7 +8,7 @@ trampoline:
   mov eax, 0x0            ; Return 0x0 - Per spec
   sti
   ret
-; Extremly
+
 [GLOBAL perform_task_switch]
 perform_task_switch:
     cli
@@ -44,7 +44,6 @@ fork:
 
 [GLOBAL kfork]
 kfork:
-    mov eax, 0x0            ; 0x0 = ID of syscall
     mov edx, [current_task] ; Save Frame
     mov [edx], esp
     mov [edx + 4], ebp

@@ -208,6 +208,7 @@ void exit() {
 }
 
 void yield() {
+    //reprioritize();
     switch_task();
 }
 
@@ -343,18 +344,28 @@ task_t *dequeue_task()
     // error check: current_task not set
     task_t *temp;
     if (!current_task) return 0;
+
     if (nt == 1) {
       ready_queue = 0;
       return current_task;
     }
 
-    for (temp = ready_queue; temp && temp->id != current_task->id; temp = temp->next);
-    if (temp) {
-        temp->prev->next = temp->next;
-        temp->next->prev = temp->prev;
-        temp->next = 0;
-        temp->prev = 0;
+    task_t *task = ready_queue;
+    while(task != 0 && task->id != current_task->id) {
+      task = task->next;
     }
+
+    if (task == ready_queue) ready_queue = ready_queue->next;
+
+    if (task) {
+      // Bridge
+      task->prev->next = task->next;
+      task->next->prev = task->prev;
+      // Remove Link
+      task->next = task->prev = 0;
+    }
+
+
 
     return current_task;
 }
