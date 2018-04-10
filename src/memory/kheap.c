@@ -335,13 +335,11 @@ unsigned int alloc(unsigned int size, unsigned char page_align, heap_t *heap)
   header_t *hole;
   unsigned int positive = (orig_hole_size > new_size) ? 1 : 0;
   unsigned diff = orig_hole_size - new_size;
-  printf("DIFF : [%x]\n", new_size);
   if (positive && diff > (sizeof(header_t) + sizeof(footer_t))) {
     // Account for shifted header in placing new header below
     // Diff + (header + size + footer) = new_header_pos
 
     if (was_aligned) {
-      printf("AB [%x]\n", aligned_block);
       new_size = ((unsigned int)aligned_block - orig_hole_pos) + new_size;
     }
 
@@ -365,12 +363,6 @@ unsigned int alloc(unsigned int size, unsigned char page_align, heap_t *heap)
     // Remove hole we are occupying, then add new hole
     remove_ordered_array(iterator, &heap->index);
     // Inserting shrunken hole
-    if (hole_header->size == 0xFFFFFFE0) {
-    printf("OGPOS [%x]\n", orig_hole_pos);
-    printf("OGSIZ {%x]\n", orig_hole_size);
-    printf("NSIZ [%x]\n", new_size);
-    printf("HOLEHDR -> [%x]\n", hole_header->size);
-    }
     insert_ordered_array((void*)hole_header, &heap->index);
   }
 

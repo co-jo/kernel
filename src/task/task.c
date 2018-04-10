@@ -123,7 +123,6 @@ void switch_task()
   current_task = ready_queue;
   // No tasks left
   if (!nt) {
-    //print_ready_queue();
     while(1);
     return;
   }
@@ -350,17 +349,21 @@ task_t *dequeue_task()
       return current_task;
     }
 
-    task_t *task = ready_queue;
-    while(task != 0 && task->id != current_task->id) {
-      task = task->next;
-    }
+    //task_t *task = ready_queue;
+    //while(task != 0 && task->id != current_task->id) {
+    //  task = task->next;
+    //}
 
-    if (task == ready_queue) ready_queue = ready_queue->next;
+    task_t  *task = current_task;
+
+    if (task == ready_queue)
+      ready_queue = ready_queue->next;
 
     if (task) {
       // Bridge
       task->prev->next = task->next;
-      task->next->prev = task->prev;
+      if (task->prev) task->prev->next = task->next;
+      if (task->next) task->next->prev = task->prev;
       // Remove Link
       task->next = task->prev = 0;
     }

@@ -75,7 +75,6 @@ int wait(int s)
     // this task isn't already holding this semaphore
     // check if the semaphore has any room left
     if (sem->num_held < sem->size) {
-        puts("Sem has space...\n");
         // the semaphore has room left, add this task id to the array of tasks holding this
         // semaphore and return the id
         for (i = 0; i < sem->size; ++i) {
@@ -91,7 +90,6 @@ int wait(int s)
         // this semaphore does not have room left:
         // remove it from the ready queue, add the task to the end of the wait queue,
         // and yield the processor
-        puts("Sem no space...\n");
         task_t *waiting_task = dequeue_task();
 
         sem->wait_list_end->next = waiting_task;
