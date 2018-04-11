@@ -18,7 +18,7 @@ static void print_pipe(pipe_t *p)
 }
 
 
-int open_pipe()
+int _open_pipe()
 {
   pipe_t *new_pipe = (pipe_t*)kmalloc(sizeof(pipe_t), 0, 0);
   if (!new_pipe) {
@@ -38,7 +38,7 @@ int open_pipe()
   return new_pipe->id;
 }
 
-unsigned int write(int fd, const void *buf, unsigned int nbyte)
+unsigned int _write(int fd, const void *buf, unsigned int nbyte)
 {
   pipe_t *pipe = find_pipe(fd);
   char *b = (char*)buf;
@@ -46,7 +46,7 @@ unsigned int write(int fd, const void *buf, unsigned int nbyte)
     return INVALID_PIPE;
   }
   // lock access to the pipe while we write to it
-  wait(pipe->sem);
+  _wait(pipe->sem);
   int bytes_written = 0;
   if (pipe->free_space >= nbyte) { // there's enough space to write to the pipe
     int i;
@@ -58,12 +58,12 @@ unsigned int write(int fd, const void *buf, unsigned int nbyte)
     pipe->free_space -= nbyte;
     pipe->dirty = 1;
   }
-  signal(pipe->sem); // signal that we're done
+  _signal(pipe->sem); // signal that we're done
 
   return bytes_written;
 }
 
-unsigned int read(int fd, void *buf, unsigned int nbyte)
+unsigned int _read(int fd, void *buf, unsigned int nbyte)
 {
   pipe_t *pipe = find_pipe(fd);
   if (!pipe) {
@@ -71,13 +71,13 @@ unsigned int read(int fd, void *buf, unsigned int nbyte)
   }
   int bytes_read = 0;
   while (!pipe->dirty){
-    yield();
+    _yield();
     // If pipe is closed while waiting
     if (!find_pipe(fd)) return INVALID_PIPE;
   }
 
   // Can read - acquire sem to lock
-  wait(pipe->sem);
+  _wait(pipe->sem);
   int i;
   for (i = 0; (i < nbyte) && (((pipe->read_offset+i) % BUF_SIZE) != pipe->write_offset + 1); ++i) {
     ((char*)buf)[i] = pipe->buffer[pipe->read_offset];
@@ -89,12 +89,12 @@ unsigned int read(int fd, void *buf, unsigned int nbyte)
   if (pipe->free_space == BUF_SIZE) {
     pipe->dirty = 0;
   }
-  signal(pipe->sem);
+  _signal(pipe->sem);
 
   return bytes_read;
 }
 
-int close_pipe(int fd)
+int _close_pipe(int fd)
 {
   pipe_t *pipe = find_pipe(fd);
   if (!pipe) return INVALID_PIPE;

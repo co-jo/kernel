@@ -200,15 +200,15 @@ int pfork()
   return child->id;
 }
 
-void exit() {
+void _exit() {
     task_t *dying = dequeue_task();
     if (dying) {
       dying->state = ZOMBIE;
     }
-    yield();
+    _yield();
 }
 
-void yield() {
+void _yield() {
     switch_task();
 }
 
@@ -267,7 +267,7 @@ void reprioritize()
     return;
 }
 
-int setpriority(int pid, int new_priority)
+int _setpriority(int pid, int new_priority)
 {
     task_t *iter = (task_t*)ready_queue;
     // edge case: first task matches pid
@@ -388,7 +388,7 @@ void cleanup_task(task_t *task) {
   kfree(task);
 }
 
-int sleep(unsigned int secs)
+int _sleep(unsigned int secs)
 {
     task_t *sleeping = dequeue_task();
     sleeping->sleep_time = secs;
@@ -398,7 +398,7 @@ int sleep(unsigned int secs)
     sleep_list->prev = sleeping;
     sleep_list = sleeping;
 
-    yield();
+    _yield();
 
     return sleeping->sleep_time;
 }
@@ -448,7 +448,7 @@ int contains_task(int pid, task_t *list)
     return temp ? 1 : 0;
 }
 
-int getpid()
+int _getpid()
 {
   return current_task->id;
 }

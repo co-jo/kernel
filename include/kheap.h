@@ -33,9 +33,9 @@ typedef struct
 void *create_heap(heap_t *heap, unsigned int start, unsigned int end, unsigned int max,
                   unsigned char supervisor, unsigned char readonly);
 
-unsigned int alloc(unsigned int size, unsigned char page_align, heap_t *heap);
+void *_alloc(unsigned int size, unsigned char page_align);
 
-void free(void *p, heap_t *heap);
+void _free(void *p, heap_t *heap);
 
 unsigned int kmalloc(unsigned int size, unsigned int align, unsigned int *phys);
 

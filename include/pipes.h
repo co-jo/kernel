@@ -28,21 +28,21 @@ typedef struct pipe {
 
 // Initialize a new pipe and returns a descriptor. It returns INVALID_PIPE
 //   when none is available.
-int open_pipe();
+int _open_pipe();
 
 // Write the first nbyte of bytes from buf into the pipe fildes. The return value is the
 //   number of bytes written to the pipe. If the pipe is full, no bytes are written.
 //   Only write to the pipe if all nbytes can be written.
-unsigned int write(int fildes, const void *buf, unsigned int nbyte);
+unsigned int _write(int fildes, const void *buf, unsigned int nbyte);
 
 // Read the first nbyte of bytes from the pipe fildes and store them in buf. The
 //   return value is the number of bytes successfully read. If the pipe is 
 //   invalid, it returns -1.
-unsigned int read(int fildes, void *buf, unsigned int nbyte);
+unsigned int _read(int fildes, void *buf, unsigned int nbyte);
 
 // Close the pipe specified by fildes. It returns INVALID_PIPE if the fildes
 //   is not valid.
-int close_pipe(int fildes);
+int _close_pipe(int fildes);
 
 static pipe_t *find_pipe(int id);
 

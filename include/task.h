@@ -56,7 +56,7 @@ int pfork();
 void move_stack(unsigned int base, unsigned int num_frames);
 
 // Returns the pid of the current process.
-int getpid();
+int _getpid();
 
 // Switch to user mode
 void switch_to_user_mode();
@@ -73,7 +73,13 @@ void enqueue_task(task_t *task);
 // remove the first task
 task_t *dequeue_task();
 
-int sleep(unsigned int secs);
+int _sleep(unsigned int secs);
+
+void _exit();
+
+void _yield();
+
+int _setpriority(int pid, int priority);
 
 task_t *remove_task_from_list(int pid, task_t *list);
 

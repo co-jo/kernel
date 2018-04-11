@@ -97,7 +97,7 @@ void isr_handler(regs_t *regs)
   }
   else {
     dump_regs(regs);
-    puts(exception_messages[regs->int_no]);
-    halt(" : Sytsem Halted.\n");
+    set_window_title(exception_messages[regs->int_no]);
+    cli("...");
   }
 }

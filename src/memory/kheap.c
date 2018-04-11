@@ -19,7 +19,7 @@ unsigned int kmalloc(unsigned int size, unsigned int align, unsigned int *phys)
 {
   if (kheap->initialized == 1)
   {
-    unsigned int addr = alloc(size, (unsigned char)align, kheap);
+    unsigned int addr = _alloc(size, (unsigned char)align);
     if (phys != 0)
     {
       int pflags = flags(1, 1, 1);
@@ -64,7 +64,7 @@ int align_to_prev(unsigned int address)
 
 void kfree(void *p)
 {
-  free(p, kheap);
+  _free(p, kheap);
 }
 
 static void expand(unsigned int new_size, heap_t *heap)
@@ -186,8 +186,9 @@ void *create_heap(heap_t *heap, unsigned int start, unsigned int end,
   insert_ordered_array((void*)hole, &heap->index);
 }
 
-unsigned int alloc(unsigned int size, unsigned char page_align, heap_t *heap)
+void *_alloc(unsigned int size, unsigned char page_align)
 {
+  heap_t *heap = kheap;
   // Make sure we take the size of header/footer into account.
   unsigned int new_size = size + sizeof(header_t) + sizeof(footer_t);
   int iterator = find_smallest_hole(new_size, page_align, heap);
@@ -241,7 +242,7 @@ unsigned int alloc(unsigned int size, unsigned char page_align, heap_t *heap)
       footer->magic = HEAP_MAGIC;
     }
     // We now have enough space. Recurse, and call the function again.
-    return alloc(size, page_align, heap);
+    return _alloc(size, page_align);
   }
 
   header_t *orig_hole_header = (header_t *)lookup_ordered_array(iterator, &heap->index);
@@ -343,7 +344,7 @@ unsigned int alloc(unsigned int size, unsigned char page_align, heap_t *heap)
   return block_ptr;
 }
 
-void free(void *p, heap_t *heap)
+void _free(void *p, heap_t *heap)
 {
   // Exit gracefully for null pointers.
   if (p == 0)

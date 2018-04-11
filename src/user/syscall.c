@@ -1,24 +1,68 @@
-// syscall.c -- Defines the implementation of a system call system.
-//              Written for JamesM's kernel development tutorials.
-
 #include "syscall.h"
 #include "isr.h"
-#include "task.h"
 #include "debug.h"
 #include "scrn.h"
 #include "system.h"
 
-DEFN_SYSCALL0(pfork, 0);
-DEFN_SYSCALL0(halt, 1);
-DEFN_SYSCALL2(printf, 2, const char*, int);
+/* Syscall Includes */
+#include "task.h"
+#include "semaphores.h"
+#include "pipes.h"
+#include "kheap.h"
+#include "scrn.h"
 
-static void *syscalls[3] =
+DEFN_SYSCALL0(pfork, 0);
+
+/* Memory */
+DEFN_SYSCALL2(_alloc, 1, unsigned int, unsigned char);
+DEFN_SYSCALL1(_free, 2, void*);
+
+/* Tasking */
+DEFN_SYSCALL0(initialise_tasking, 3);
+DEFN_SYSCALL0(_exit, 4);
+DEFN_SYSCALL0(_yield, 5);
+DEFN_SYSCALL1(_sleep, 6, unsigned int);
+DEFN_SYSCALL0(_getpid, 7);
+DEFN_SYSCALL2(_setpriority, 8, int, int);
+
+/* Syncronization */
+DEFN_SYSCALL1(_open_sem, 9, int);
+DEFN_SYSCALL1(_wait, 10, int);
+DEFN_SYSCALL1(_signal, 11, int);
+DEFN_SYSCALL1(_close_sem, 12, int);
+
+/* IPC */
+DEFN_SYSCALL0(_open_pipe, 13);
+DEFN_SYSCALL3(_write, 14, int, const void*, unsigned int);
+DEFN_SYSCALL3(_read, 15, int, void*, unsigned int);
+DEFN_SYSCALL1(_close_pipe, 16, int);
+
+/* Output Functions */
+DEFN_SYSCALL2(printf, 17, const char*, int);
+
+
+static void *syscalls[18] =
 {
     &pfork,
-    &halt,
+    &_alloc,
+    &_free,
+    &initialise_tasking,
+    &_exit,
+    &_yield,
+    &_sleep,
+    &_getpid,
+    &_setpriority,
+    &_open_sem,
+    &_wait,
+    &_signal,
+    &_close_sem,
+    &_open_pipe,
+    &_write,
+    &_read,
+    &_close_pipe,
     &printf
 };
-unsigned int num_syscalls = 3;
+unsigned int num_syscalls = 18;
 
 void initialise_syscalls()
 {

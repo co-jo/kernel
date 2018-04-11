@@ -7,7 +7,7 @@ volatile sem_t *_sem_list = 0;
 unsigned int _sem_count = 0;
 extern task_t *ready_queue;
 
-int open_sem(int n)
+int _open_sem(int n)
 {
     sem_t *new_sem = kmalloc(sizeof(sem_t), 0, 0);
     new_sem->tasks_held = kmalloc(n * sizeof(int), 0, 0);
@@ -50,7 +50,7 @@ static sem_t *find_sem(int s)
     return 0;
 }
 
-int wait(int s)
+int _wait(int s)
 {
     sem_t *sem = find_sem(s);
     if (!sem) return 0;
@@ -112,7 +112,7 @@ int wait(int s)
     return 0;
 }
 
-int signal(int s)
+int _signal(int s)
 {
     sem_t *sem = find_sem(s);
     if (!sem) return 0;
@@ -165,7 +165,7 @@ void print_wait_list(int s){
     printf("Sem : [%x]\n", sem->tasks_held[i]);
 }
 
-int close_sem(int s)
+int _close_sem(int s)
 {
     sem_t *sem = find_sem(s);
     if (!sem) return 0;

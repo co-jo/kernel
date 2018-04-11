@@ -3,7 +3,6 @@
 #define SYSCALL
 
 #include "system.h"
-
 void initialise_syscalls();
 void syscall_handler(regs_t *regs);
 
@@ -62,7 +61,35 @@ int syscall_##fn(P1 p1, P2 p2, P3 p3, P4 p4, P5 p5) \
   return a; \
 }
 
-DECL_SYSCALL0(pfork);
+/* Random */
 DECL_SYSCALL0(halt);
+
+/* Output Functions */
 DECL_SYSCALL2(printf, const char *, int arg);
+
+/* Memory */
+DECL_SYSCALL2(_alloc, unsigned int size, unsigned char page_align);
+DECL_SYSCALL1(_free, void *ptr);
+
+/* Tasking */
+DECL_SYSCALL0(initialise_tasking);
+DECL_SYSCALL0(_pfork);
+DECL_SYSCALL0(_exit);
+DECL_SYSCALL0(_yield);
+DECL_SYSCALL1(_sleep, unsigned int seconds);
+DECL_SYSCALL0(_getpid);
+DECL_SYSCALL2(_setpriority, int pid, int priority);
+
+/* Syncronization */
+DECL_SYSCALL1(_open_sem, int num_semaphores);
+DECL_SYSCALL1(_wait, int semaphore_id);
+DECL_SYSCALL1(_signal, int semaphore_id);
+DECL_SYSCALL1(_close_sem, int semaphore_id);
+
+/* IPC */
+DECL_SYSCALL0(_open_pipe);
+DECL_SYSCALL3(_write, int fildes, const void *buf, unsigned int num_bytes);
+DECL_SYSCALL3(_read, int fildes, void *buf, unsigned int num_bytes);
+DECL_SYSCALL1(_close_pipe, int fildes);
+
 #endif

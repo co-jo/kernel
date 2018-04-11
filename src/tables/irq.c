@@ -4,7 +4,6 @@
 /* These are own ISRs that point to our special IRQ handler
  *  instead of the regular 'fault_handler' function */
 
-
 /* This array is actually an array of function pointers. We use
  *  this to handle custom IRQ handlers for a given IRQ */
 void *irq_routines[16] = { 0 };

@@ -17,18 +17,17 @@ void debug_regs(regs_t *regs)
 
 void dump_regs(regs_t *regs)
 {
-  line();
  // printf("GS[%x]\n", regs->gs);
  // printf("FS[%x]\n", regs->fs);
  // printf("ES[%x]\n", regs->es);
  // printf("DS[%x]\n", regs->ds);
-  printf("EDI[%x]\n", regs->edi);
-  printf("ESI[%x]\n", regs->esi);
+  // printf("EDI[%x]\n", regs->edi);
+  // printf("ESI[%x]\n", regs->esi);
   printf("EBP[%x]\n", regs->ebp);
   printf("ESP[%x]\n", regs->esp);
-  printf("EBX[%x]\n", regs->ebx);
-  printf("EDX[%x]\n", regs->edx);
-  printf("ECX[%x]\n", regs->ecx);
+  // printf("EBX[%x]\n", regs->ebx);
+  // printf("EDX[%x]\n", regs->edx);
+  // printf("ECX[%x]\n", regs->ecx);
   printf("EAX[%x]\n", regs->eax);
   printf("INT[%x]\n", regs->int_no);
   printf("ERR[%b]\n", regs->err_code);
@@ -39,8 +38,6 @@ void dump_regs(regs_t *regs)
   printf("EFLAGS[%b]\n", regs->eflags);
   printf("USERESP[%x]\n", regs->useresp);
   printf("SS[%x]\n", regs->ss);
-  printf("LAST FRAME: [%x]\n", first_frame() - 1);
-  line();
 }
 
 void print_stack(int num, unsigned int esp)
