@@ -50,11 +50,11 @@ int kmain(struct multiboot *mboot_ptr, unsigned int initial_stack)
   initialise_syscalls();
 
   /* Run Tests */
-  test_kit();
+  //test_kit();
 
   /* User Program */
-  main();
-
+  // main();
+  test_IPC();
   /* Idle Task */
   idle();
 
@@ -74,7 +74,6 @@ void test_synch()
     // testing non binary semaphore
     int sem = open_sem(1);
     int finish_sem = open_sem(1);
-    puts("???\n");
     assert_not_equal(sem, 0, "Opened new binary semaphore");
     int child = kfork();
     if (child != 0) {
@@ -179,7 +178,6 @@ void test_IPC() {
         assert_equal(strcmp(in_buf, "hello world"), 1, "Read bytes equal to written bytes1");
         char in_buf2[10];
         ret = read(pipefd, in_buf2, 10);
-        printf("BUF %d\n", *in_buf2);
         assert_equal(ret, 10, "Read 10 bytes from pipe in child");
         assert_equal(strcmp(in_buf2, "more data"), 1, "Read bytes equal to written bytes2");
     }

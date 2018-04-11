@@ -21,6 +21,7 @@ void initialise_tasking()
 
 int fork()
 {
+  puts("Fork.,.\n");
 }
 
 int exit()
@@ -73,5 +74,6 @@ unsigned int read(int fildes, void *buf, unsigned int num_bytes)
 
 int close_pipe(int fildes)
 {
+
 }
 #endif
