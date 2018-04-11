@@ -79,7 +79,6 @@ int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
   */
   test_synch();
   //test_IPC();
-  puts("Return Main..\n");
 
   exit();
   return 0;
@@ -91,97 +90,95 @@ void test_synch()
     print("Testing synchronization...\n");
 
     // testing invalid semaphores
-    //assert_equal(close_sem(3), 0, "Closing invalid semaphore");
-    //assert_equal(signal(3), 0, "Signalling invalid semaphore");
-    //assert_equal(wait(3), 0, "Waiting on invalid semaphore");
+    assert_equal(close_sem(3), 0, "Closing invalid semaphore");
+    assert_equal(signal(3), 0, "Signalling invalid semaphore");
+    assert_equal(wait(3), 0, "Waiting on invalid semaphore");
 
     // testing non binary semaphore
     int sem = open_sem(1);
     int finish_sem = open_sem(1);
-    //assert_not_equal(sem, 0, "Opened new binary semaphore");
+    assert_not_equal(sem, 0, "Opened new binary semaphore");
     int child = kfork();
     if (child != 0) {
         int swait = wait(sem);
-        //assert_not_equal(swait, 0, "Aquiring semaphore in parent");
+        assert_not_equal(swait, 0, "Aquiring semaphore in parent");
         setpriority(1,7);
         setpriority(2,1);
         yield();
-        //print("(Parent) This message should come first\n");
+        print("(Parent) This message should come first\n");
         int sig = signal(sem);
-        //assert_not_equal(sig, 0, "Releasing semaphore in parent");
+        assert_not_equal(sig, 0, "Releasing semaphore in parent");
     } else {
-        //assert_not_equal(wait(finish_sem), 0, "Aquiring finish_sem in child");
+        assert_not_equal(wait(finish_sem), 0, "Aquiring finish_sem in child");
         int wsem = wait(sem);
-        //assert_not_equal(wsem, 0, "Aquiring semaphore in child");
-        //print_wait_list(finish_sem);
-        //print("(Child) This messaege should come second\n");
-        //print_wait_list(sem);
+        assert_not_equal(wsem, 0, "Aquiring semaphore in child");
+        print_wait_list(finish_sem);
+        print("(Child) This messaege should come second\n");
+        print_wait_list(sem);
         int res = signal(sem);
-        //assert_not_equal(res, 0, "Rkeleasing semaphore in child");
+        assert_not_equal(res, 0, "Rkeleasing semaphore in child");
         res = signal(finish_sem);
-        //printf("Res : %x\n", res);
-        //assert_not_equal(res, 0, "Releasing finish_sem in child");
-        //exit();
+        printf("Res : %x\n", res);
+        assert_not_equal(res, 0, "Releasing finish_sem in child");
+        exit();
     }
 
     int a = wait(finish_sem);
-    //assert_not_equal(a, 0, "Aquiring finish_sem in parent");
+    assert_not_equal(a, 0, "Aquiring finish_sem in parent");
     int b = signal(finish_sem);
-    //assert_not_equal(b, 0, "Releasing finish_sem in parent");
+    assert_not_equal(b, 0, "Releasing finish_sem in parent");
 
-    //assert_not_equal(close_sem(sem), 0, "Closing semaphore");
+    assert_not_equal(close_sem(sem), 0, "Closing semaphore");
 
     // testing non-binary semaphore
-   sem = open_sem(3);
-   //assert_not_equal(sem, 0, "Opened new non-binary semaphore");
+    sem = open_sem(3);
+    assert_not_equal(sem, 0, "Opened new non-binary semaphore");
+
    int child1 = kfork();
    int child2 = kfork();
 
-   printf("PID :[%x]\n", getpid());
-   //task_t *task = current_task;
-   //while (task) {
-   //  printf("Task : [%x]\n", task->id);
-   //  task = task->next;
-   //}
-   //int pid = getpid();
-   // switch (pid) {
-   // case 1:
-   //     wait(finish_sem);
-   //     wait(sem);
-   //     print("Entered critical region on process 1\n");
-   //     setpriority(1, 9);
-   //     setpriority(5, 8);
-   //     yield();
-   //     signal(sem);
-   //     print("This should come second\n");
-   //     signal(finish_sem);
-   //     break;
-   // case 3:
-   //     wait(sem);
-   //     print("Entered critical region on process 2\n");
-   //     break;
-   // case 4:
-   //     wait(sem);
-   //     print("Entered critical region on process 3\n");
-   //     break;
-   // case 5:
-   //     wait(sem);
-   //     print("Entered critical region on process 4\n");
-   //     print("This should come first\n");
-   //     break;
-   // }
-   // if (pid != 1) {
-   //     signal(sem);
-   //     wait(finish_sem);
-   //     signal(finish_sem);
-   //     exit();
-   // }
-   // wait(finish_sem);
-   // signal(finish_sem);
-   // close_sem(finish_sem);
-   // assert_not_equal(close_sem(sem), 0, "Closing non-binary semaphore");
+   int pid = getpid();
+    switch (pid) {
+    case 1:
+        wait(finish_sem);
+        wait(sem);
+        print("Entered critical region on process 1\n");
+        setpriority(1, 9);
+        setpriority(5, 8);
+        yield();
+        signal(sem);
+        print("This should come second\n");
+        signal(finish_sem);
+        break;
+    case 3:
+        wait(sem);
+        print("Entered critical region on process 2\n");
+        break;
+    case 4:
+        wait(sem);
+        print("Entered critical region on process 3\n");
+        break;
+    case 5:
+        wait(sem);
+        print("Entered critical region on process 4\n");
+        print("This should come first\n");
+        break;
+    }
+    if (pid != 1) {
+        signal(sem);
+        wait(finish_sem);
+        signal(finish_sem);
+        exit();
+    }
+    wait(finish_sem);
+    signal(finish_sem);
+    close_sem(finish_sem);
+
+    puts("....>>\n");
+    //assert_not_equal(close_sem(sem), 0, "Closing non-binary semaphore");
     //print("Completed synchronization testing...\n");
-    if (current_task->id != 0x1) exit();
+    //
+
 }
 
 void test_IPC() {

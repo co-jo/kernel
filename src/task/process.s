@@ -44,6 +44,7 @@ fork:
 
 [GLOBAL kfork]
 kfork:
+    mov eax, 0x0
     mov edx, [current_task] ; Save Frame
     mov [edx], esp
     mov [edx + 4], ebp

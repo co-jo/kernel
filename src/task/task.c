@@ -121,6 +121,10 @@ void switch_task()
 
   // Getinitialise the next task to run.
   current_task = ready_queue;
+  if (current_task == 0) {
+    puts("Zero\n");
+  }
+  //printf("NT [%x]\n", nt);
   // No tasks left
   if (!nt) {
     while(1);
@@ -151,10 +155,10 @@ void switch_task()
 
 task_t *create_init_task()
 {
-  nt++;
+  ++nt;
   task_t *task = (task_t*)kmalloc(sizeof(task_t));
   task->page_directory = current_directory;
-  task->id = pid++;
+  task->id = pid;
   task->stack = STACK_START;
   task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE;
   task->state = READY;
@@ -166,12 +170,12 @@ task_t *create_init_task()
 
 task_t *create_task()
 {
-  nt++;
+  ++nt;
   task_t *task = (task_t*)kmalloc(sizeof(task_t));
   task->page_directory = clone_directory(current_directory);
   task->stack = kmalloc_a(2 * FRAME_SIZE) + 2 * FRAME_SIZE;
   task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE;
-  task->id = pid++;
+  task->id = ++pid;
   task->esp = task->ebp = task->eip = task->next = task->user = 0;
   task->state = FORKED;
   task->priority = DEFAULT_PRIORITY;
@@ -200,6 +204,7 @@ int pfork()
 
 void exit() {
     task_t *dying = dequeue_task();
+    printf("Killing Task %x\n", dying->id);
     if (dying) {
       dying->state = ZOMBIE;
     }
@@ -207,7 +212,6 @@ void exit() {
 }
 
 void yield() {
-    //reprioritize();
     switch_task();
 }
 
@@ -341,7 +345,6 @@ void enqueue_task(task_t *task)
 task_t *dequeue_task()
 {
     // error check: current_task not set
-    task_t *temp;
     if (!current_task) return 0;
 
     if (nt == 1) {
@@ -349,34 +352,27 @@ task_t *dequeue_task()
       return current_task;
     }
 
-    //task_t *task = ready_queue;
-    //while(task != 0 && task->id != current_task->id) {
-    //  task = task->next;
-    //}
-
     task_t  *task = current_task;
-
     if (task == ready_queue)
       ready_queue = ready_queue->next;
 
     if (task) {
       // Bridge
-      task->prev->next = task->next;
-      if (task->prev) task->prev->next = task->next;
-      if (task->next) task->next->prev = task->prev;
+      if (task->next) task->prev->next = task->next;
+      if (task->prev) task->next->prev = task->prev;
       // Remove Link
       task->next = task->prev = 0;
     }
-
-
 
     return current_task;
 }
 
 void cleanup_task(task_t *task) {
+  printf("Cleaning Up Task [%x]\n", task->id);
   task->next = 0;
   task->prev = 0;
   nt--;
+  printf("Clean - NT [%x]\n", nt);
   kfree(task);
 }
 
@@ -448,8 +444,8 @@ int getpid()
 void print_ready_queue()
 {
     task_t *temp = (task_t*)ready_queue;
-    int pos = 0;
     char *buf;
+
     if (!temp)
       puts("Ready Queue Empty!");
 
@@ -458,8 +454,6 @@ void print_ready_queue()
         printf("Priority: [%d]\n", temp->priority);
         temp = temp->next;
     }
-
-    putch("\n");
 }
 
 void switch_to_user_mode()
