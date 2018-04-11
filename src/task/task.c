@@ -41,6 +41,7 @@ void initialise_tasking()
   // Initialise the first task (kernel task)
   move_stack(0xE0000000, 0x2);
   current_task = create_init_task();
+
   ready_queue = current_task;
 
   // Reenable interrupts.
@@ -123,7 +124,10 @@ void switch_task()
   current_task = ready_queue;
 
   // No tasks left
-  if (!nt) shutdown("No Tasks Left... Halting");
+  if (!nt) {
+    set_window_title("No Tasks Left... Halting");
+    while(1);
+  }
 
   current_directory = current_task->page_directory;
   set_kernel_stack(current_task->kernel_stack);
@@ -150,11 +154,11 @@ void switch_task()
 task_t *create_init_task()
 {
   ++nt;
-  task_t *task = (task_t*)kmalloc(sizeof(task_t));
+  task_t *task = (task_t*)kmalloc(sizeof(task_t), 0, 0);
   task->page_directory = current_directory;
   task->id = pid;
   task->stack = STACK_START;
-  task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE;
+  task->kernel_stack = kmalloc(KERNEL_STACK_SIZE, 1, 0) + KERNEL_STACK_SIZE;
   task->state = READY;
   task->priority = DEFAULT_PRIORITY;
   task->sleep_time = 0;
@@ -165,10 +169,10 @@ task_t *create_init_task()
 task_t *create_task()
 {
   ++nt;
-  task_t *task = (task_t*)kmalloc(sizeof(task_t));
+  task_t *task = (task_t*)kmalloc(sizeof(task_t), 0, 0);
   task->page_directory = clone_directory(current_directory);
-  task->stack = kmalloc_a(2 * FRAME_SIZE) + 2 * FRAME_SIZE;
-  task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE;
+  task->stack = kmalloc(2 * FRAME_SIZE, 1, 0) + 2 * FRAME_SIZE;
+  task->kernel_stack = kmalloc(KERNEL_STACK_SIZE, 1, 0) + KERNEL_STACK_SIZE;
   task->id = ++pid;
   task->esp = task->ebp = task->eip = task->next = task->user = 0;
   task->state = FORKED;
@@ -299,20 +303,11 @@ void enqueue_task(task_t *task)
 {
     if (!task) return;
     task_t *iterator = (task_t*)ready_queue;
-    //puts("\nBefore...\n");
-    //print_ready_queue();
-    // edge case, one element queue
-    //if (!iterator->next) {
-    //    if (task->priority <= iterator->priority) {
-    //        task->next = iterator;
-    //        iterator->prev = task;
-    //        ready_queue = task;
-    //    } else {
-    //        iterator->next = task;
-    //        task->prev = iterator;
-    //    }
-    //    return;
-    //}
+
+    if (!ready_queue) {
+        ready_queue = task;
+        return;
+    }
 
     if (!iterator->next) {
       ready_queue->next = task;
@@ -348,6 +343,7 @@ task_t *dequeue_task()
     // error check: current_task not set
     if (!current_task) return 0;
 
+    // Not from a sleep call
     if (nt == 1) {
       ready_queue = 0;
       return current_task;
@@ -386,7 +382,7 @@ void cleanup_task(task_t *task) {
 int sleep(unsigned int secs)
 {
     task_t *sleeping = dequeue_task();
-    sleeping->sleep_time = secs * SLEEP_MAGIC;
+    sleeping->sleep_time = secs;
     sleeping->state = SLEEPING;
 
     sleeping->next = sleep_list;

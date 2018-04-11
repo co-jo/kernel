@@ -9,8 +9,8 @@ extern task_t *ready_queue;
 
 int open_sem(int n)
 {
-    sem_t *new_sem = kmalloc(sizeof(sem_t));
-    new_sem->tasks_held = kmalloc(n * sizeof(int));
+    sem_t *new_sem = kmalloc(sizeof(sem_t), 0, 0);
+    new_sem->tasks_held = kmalloc(n * sizeof(int), 0, 0);
     int i;
     // This loop seems to override stuff within the new struct
     for (i = 0; i < n; ++i) {
@@ -84,6 +84,8 @@ int wait(int s)
             }
         }
         sem->num_held++;
+        
+        asm volatile("sti");
         return sem->id;
     }
     else {
@@ -99,9 +101,7 @@ int wait(int s)
             sem->wait_list = sem->wait_list_end;
 
         asm volatile("sti");
-
         yield();
-
         // we'll return here after being put back in the ready queue
         // by the signal function signalling that there's free space in the semaphore
         return sem->id;

@@ -13,7 +13,7 @@
 **/
 typedef void* type_t;
 /**
-   A predicate should return nonzero if the first argument is less than the second. Else 
+   A predicate should return nonzero if the first argument is less than the second. Else
    it should return zero.
 **/
 typedef char (*lessthan_predicate_t)(type_t,type_t);

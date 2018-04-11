@@ -1,4 +1,0 @@
-#define INVALID_PIPE -1
-
-typedef struct pipe {
-    char buffer[2048];

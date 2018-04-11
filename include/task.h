@@ -29,6 +29,7 @@ typedef struct task
     unsigned int eax;                     // Possible return value
     unsigned int kernel_stack;            // SYSCall stack
     unsigned int stack;                   // Main Stack
+    unsigned int *heap;
     unsigned int state;                   // State the process can be in
     unsigned int user;                    // Is this a user or kernel task
     struct task *next;                    // The next task in a linked list

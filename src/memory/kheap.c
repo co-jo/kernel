@@ -15,7 +15,7 @@ extern page_directory_t *kernel_directory;
 extern page_directory_t *current_directory;
 heap_t *kheap;
 
-unsigned int kmalloc_int(unsigned int size, int align, unsigned int *phys)
+unsigned int kmalloc(unsigned int size, unsigned int align, unsigned int *phys)
 {
   if (kheap->initialized == 1)
   {
@@ -67,30 +67,9 @@ void kfree(void *p)
   free(p, kheap);
 }
 
-unsigned int kmalloc_a(unsigned int sz)
-{
-  return kmalloc_int(sz, 1, 0);
-}
-
-unsigned int kmalloc_p(unsigned int sz, unsigned int *phys)
-{
-  return kmalloc_int(sz, 0, phys);
-}
-
-unsigned int kmalloc_ap(unsigned int sz, unsigned int *phys)
-{
-  return kmalloc_int(sz, 1, phys);
-}
-
-unsigned int kmalloc(unsigned int sz)
-{
-  return kmalloc_int(sz, 0, 0);
-}
-
 static void expand(unsigned int new_size, heap_t *heap)
 {
   // Get the nearest following page boundary.
-  puts("Expanding..\n");
   if (new_size&0xFFFFF000 != 0)
   {
     new_size &= 0xFFFFF000;
@@ -103,7 +82,7 @@ static void expand(unsigned int new_size, heap_t *heap)
   unsigned int i = old_size;
   while (i < new_size)
   {
-    get_page(heap->start_address+i, kernel_directory, flags(1, 0, 0));
+    get_page(heap->start_address+i, kernel_directory, flags(1, 1, 1));
     i += FRAME_SIZE;
   }
   heap->end_address = heap->start_address+new_size;
@@ -220,7 +199,7 @@ unsigned int alloc(unsigned int size, unsigned char page_align, heap_t *heap)
     unsigned int old_end_address = heap->end_address;
 
     // We need to allocate some more space.
-    expand(old_length + 0x1000, heap);
+    expand(old_length + 0x100000, heap);
     unsigned int new_length = heap->end_address-heap->start_address;
 
     // Find the endmost header. (Not endmost in size, but in location).
@@ -311,10 +290,7 @@ unsigned int alloc(unsigned int size, unsigned char page_align, heap_t *heap)
     aligned_pos = aligned_location;
   }
 
-  // Overwrite the original header... ??
-
   header_t *block_header;
-
   if (was_aligned) {
     block_header = aligned_block;
   } else {
@@ -330,15 +306,13 @@ unsigned int alloc(unsigned int size, unsigned char page_align, heap_t *heap)
   }
 
   // We may need to write a new hole after the allocated block.
-  // We do this only if the new hole would have positive size...
-
+  // We do this only if the new hole would have positive size.
   header_t *hole;
   unsigned int positive = (orig_hole_size > new_size) ? 1 : 0;
   unsigned diff = orig_hole_size - new_size;
   if (positive && diff > (sizeof(header_t) + sizeof(footer_t))) {
     // Account for shifted header in placing new header below
     // Diff + (header + size + footer) = new_header_pos
-
     if (was_aligned) {
       new_size = ((unsigned int)aligned_block - orig_hole_pos) + new_size;
     }
@@ -352,12 +326,10 @@ unsigned int alloc(unsigned int size, unsigned char page_align, heap_t *heap)
 
     footer_t *hole_footer = (footer_t *) ( (unsigned int)hole_header + orig_hole_size - new_size - sizeof(footer_t) );
 
-    if ((unsigned int)hole_footer < heap->end_address)
-    {
+    if ((unsigned int)hole_footer < heap->end_address) {
       hole_footer->magic = HEAP_MAGIC;
       hole_footer->header = hole_header;
     }
-
     hole = hole_header;
 
     // Remove hole we are occupying, then add new hole
@@ -415,7 +387,7 @@ void free(void *p, heap_t *heap)
     while ( (iterator < heap->index.size) &&
         (lookup_ordered_array(iterator, &heap->index) != (void*)test_header) )
       iterator++;
-      
+
     // Remove it.
     remove_ordered_array(iterator, &heap->index);
   }

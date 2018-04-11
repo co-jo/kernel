@@ -13,7 +13,7 @@ trampoline:
 perform_task_switch:
     cli
      mov ebx, [esp]       ; Save EIP
-     mov edx, [esp+0x4]   ; STATE (ARG 1)
+     mov edx, [esp+0x4]   ; STATE         (ARG 1)
      mov eax, [esp+0x8]   ; PAGEDIR Phys  (ARG 2)
      mov ebp, [esp+0xC]   ; EBP           (ARG 3)
      mov esp, [esp+0x10]  ; ESP           (ARG 4)
@@ -24,15 +24,7 @@ perform_task_switch:
      sti                  ;
      ret                  ;
 
-save_frame:
-;    mov ecx, neip             ; Load saved EIP
-    mov edx, [current_task]
-    mov [edx], esp
-    mov [edx + 4], ebp
-    mov [edx + 8], ecx
-    ret
-
-; User fork - Setup sys call ID & INT
+; User fork - Setup sys call ID & INTR
 [GLOBAL fork]
 fork:
    mov eax, 0x0            ; 0x0 = ID of syscall
@@ -82,3 +74,4 @@ copy_page_physical:
     popf                  ; Pop EFLAGS back.
     pop ebx               ; Get the original value of EBX back.
     ret
+

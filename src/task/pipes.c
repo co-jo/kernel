@@ -20,7 +20,7 @@ static void print_pipe(pipe_t *p)
 
 int open_pipe()
 {
-    pipe_t *new_pipe = (pipe_t*)kmalloc(sizeof(pipe_t));
+    pipe_t *new_pipe = (pipe_t*)kmalloc(sizeof(pipe_t), 0, 0);
     if (!new_pipe) {
         return INVALID_PIPE;
     }

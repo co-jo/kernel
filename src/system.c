@@ -42,11 +42,11 @@ void outportb (unsigned short _port, unsigned char _data)
     __asm__ __volatile__ ("outb %1, %0" : : "dN" (_port), "a" (_data));
 }
 
-int strcmp(const char *str1, const char *str2)
+int strcmp(char *one, char *two)
 {
     int i;
-    for(i = strlen(str1); i >= 0; i--) {
-        if (str1[i] != str2[i])
+    for(i = strlen(one); i >= 0; i--) {
+        if (one[i] != two[i])
             return 0;
     }
     return 1;
@@ -54,7 +54,7 @@ int strcmp(const char *str1, const char *str2)
 
 void halt()
 {
-  asm volatile("hlt");
+  asm volatile("wait");
 }
 
 void cli(char *message)
@@ -65,8 +65,13 @@ void cli(char *message)
   for (;;);
 }
 
-void shutdown(char *message)
+void shutdown()
 {
-  set_window_title(message);
-  while(1);
+    set_window_title(":)");
 }
+
+void idle()
+{
+    while(1);
+}
+
