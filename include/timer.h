@@ -4,7 +4,7 @@
 #include "system.h"
 
 void timer_handler(regs_t *regs);
-void timer_phase(int frequency);
-void timer_install(int frequency);
+void timer_phase();
+void timer_install();
 
 #endif

@@ -7,7 +7,6 @@
  *  has been running for */
 int timer_ticks = 0;
 int frequency = 18;
-unsigned long seconds = 0;
 
 void timer_handler(regs_t *r)
 {
@@ -21,7 +20,7 @@ void timer_handler(regs_t *r)
   }
 }
 
-void timer_install(int hz)
+void timer_install()
 {
   //timer_phase(hz);
   /* Installs 'timer_handler' to IRQ0 */

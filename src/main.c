@@ -23,9 +23,7 @@ void test_IPC();
 void assert_not_equal(unsigned int value, unsigned int expected, const char *msg);
 void assert_equal(unsigned int value, unsigned int expected, const char *msg);
 
-extern task_t *current_task;
-
-int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
+int kmain(struct multiboot *mboot_ptr, unsigned int initial_stack)
 {
   initial_esp = initial_stack;
 
@@ -41,7 +39,7 @@ int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
   /* Keyboard */
   keyboard_install();
   /* Support Tasking */
-  timer_install(100);
+  timer_install();
 
   initialise_paging();
   initialise_tasking();
@@ -53,11 +51,13 @@ int main(struct multiboot *mboot_ptr, unsigned int initial_stack)
 
   /* Run Tests */
   test_kit();
-//   test_synch();
-//   test_IPC();
-  /* User Program */
 
-  exit();
+  /* User Program */
+  main();
+
+  /* Idle Task */
+  idle();
+
   return 0;
 }
 

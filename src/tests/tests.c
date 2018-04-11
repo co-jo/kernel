@@ -3,6 +3,8 @@
 void  test_kit() {
   //memory_tests();
   sync_tests();
+
+  if (getpid() != 1) exit();
 }
 
 int success(const char *msg)

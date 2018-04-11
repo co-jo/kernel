@@ -310,9 +310,18 @@ void enqueue_task(task_t *task)
     }
 
     if (!iterator->next) {
-      ready_queue->next = task;
-      task->prev = ready_queue;
-      task->next = 0;
+      // Place in front
+      if (iterator->priority > task->priority) {
+        task->next = ready_queue;
+        ready_queue->prev = task;
+        ready_queue = task;
+
+      } else {
+        // Append
+        ready_queue->next = task;
+        task->prev = ready_queue;
+        task->next = 0;
+      }
       return;
     }
 
