@@ -121,15 +121,9 @@ void switch_task()
 
   // Getinitialise the next task to run.
   current_task = ready_queue;
-  if (current_task == 0) {
-    puts("Zero\n");
-  }
-  //printf("NT [%x]\n", nt);
+
   // No tasks left
-  if (!nt) {
-    while(1);
-    return;
-  }
+  if (!nt) shutdown("No Tasks Left... Halting");
 
   current_directory = current_task->page_directory;
   set_kernel_stack(current_task->kernel_stack);
@@ -204,7 +198,6 @@ int pfork()
 
 void exit() {
     task_t *dying = dequeue_task();
-    printf("Killing Task %x\n", dying->id);
     if (dying) {
       dying->state = ZOMBIE;
     }
@@ -306,18 +299,26 @@ void enqueue_task(task_t *task)
 {
     if (!task) return;
     task_t *iterator = (task_t*)ready_queue;
-
+    //puts("\nBefore...\n");
+    //print_ready_queue();
     // edge case, one element queue
+    //if (!iterator->next) {
+    //    if (task->priority <= iterator->priority) {
+    //        task->next = iterator;
+    //        iterator->prev = task;
+    //        ready_queue = task;
+    //    } else {
+    //        iterator->next = task;
+    //        task->prev = iterator;
+    //    }
+    //    return;
+    //}
+
     if (!iterator->next) {
-        if (task->priority <= iterator->priority) {
-            task->next = iterator;
-            iterator->prev = task;
-            ready_queue = task;
-        } else {
-            iterator->next = task;
-            task->prev = iterator;
-        }
-        return;
+      ready_queue->next = task;
+      task->prev = ready_queue;
+      task->next = 0;
+      return;
     }
 
     while (iterator->next) {
@@ -353,13 +354,20 @@ task_t *dequeue_task()
     }
 
     task_t  *task = current_task;
-    if (task == ready_queue)
+    if (task == ready_queue) {
       ready_queue = ready_queue->next;
+    }
 
     if (task) {
       // Bridge
-      if (task->next) task->prev->next = task->next;
-      if (task->prev) task->next->prev = task->prev;
+      if (task->next && task->prev) {
+        task->next->prev = task->prev;
+        task->prev->next = task->next;
+      } else if (task->next) {
+        task->next->prev = 0;
+      } else if (task->prev) {
+        task->prev->next = 0;
+      }
       // Remove Link
       task->next = task->prev = 0;
     }
@@ -368,11 +376,10 @@ task_t *dequeue_task()
 }
 
 void cleanup_task(task_t *task) {
-  printf("Cleaning Up Task [%x]\n", task->id);
+  //printf("Cleaning Up Task [%x]\n", task->id);
   task->next = 0;
   task->prev = 0;
-  nt--;
-  printf("Clean - NT [%x]\n", nt);
+  --nt;
   kfree(task);
 }
 

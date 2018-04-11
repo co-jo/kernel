@@ -65,4 +65,8 @@ void cli(char *message)
   for (;;);
 }
 
-
+void shutdown(char *message)
+{
+  set_window_title(message);
+  while(1);
+}
