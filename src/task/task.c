@@ -119,7 +119,7 @@ void switch_task()
   if (current_task->state == ZOMBIE) {
       cleanup_task(current_task);
   }
-  
+
   // Getinitialise the next task to run.
   current_task = ready_queue;
 
@@ -128,7 +128,7 @@ void switch_task()
     set_window_title("No Tasks Left... Halting");
     while(1);
   }
-  
+
   current_directory = current_task->page_directory;
   set_kernel_stack(current_task->kernel_stack);
 

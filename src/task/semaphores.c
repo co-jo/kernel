@@ -84,7 +84,7 @@ int _wait(int s)
             }
         }
         sem->num_held++;
-        
+
         asm volatile("sti");
         return sem->id;
     }

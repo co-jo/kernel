@@ -28,14 +28,14 @@ void ipc_tests()
         assert_eq(ret, 10, "Read 10 bytes from pipe in child");
         assert_eq(strcmp(in_buf2, "more data"), 1, "Read bytes equal to written bytes2");
     }
-    
+
     //puts("After close pipe...\n");
     char buf[4] = "abcd";
     ////close pipe doesn't return -1 when invalid pipe passed in
     assert_eq(_close_pipe(100), -1, "Closing invalid pipe");
     assert_eq(_write(100, buf, 4), -1, "Writing to invalid pipe");
     assert_eq(_read(100, buf, 4), -1, "Reading from invalid pipe");
-    
+
     /*
       int i;/
       while (_open_pipe() != -1);
@@ -43,6 +43,6 @@ void ipc_tests()
       print("Completed Communication Testing...\n\n");
     */
     if (getpid() == 0x1) {
-	exit();
+	_exit();
     }
 }

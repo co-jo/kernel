@@ -35,7 +35,7 @@ void *create_heap(heap_t *heap, unsigned int start, unsigned int end, unsigned i
 
 void *_alloc(unsigned int size, unsigned char page_align);
 
-void _free(void *p, heap_t *heap);
+void _free(void *p);
 
 unsigned int kmalloc(unsigned int size, unsigned int align, unsigned int *phys);
 

@@ -19,7 +19,8 @@ int main() {
     read(pipefd, buffer, 14);
     buffer[20] = '\0';
     print(buffer);
-    exit();
   }
+
+  exit();
   return 0;
 }

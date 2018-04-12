@@ -260,7 +260,7 @@ void page_fault(regs_t *regs)
   printf("US?: [%x] ", us);
   printf("RS?: [%x] ", reserved);
   printf("IF?: [%x]\n", id);
-  
+
   asm volatile("cli");
 }
 

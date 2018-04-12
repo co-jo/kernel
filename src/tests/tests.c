@@ -1,10 +1,9 @@
 #include "system.h"
 
-void  test_kit() {
+void test_kit() {
   memory_tests();
-  // sync_tests();
+  sync_tests();
   ipc_tests();
-  if (getpid() != 1) exit();
 }
 
 int success(const char *msg)

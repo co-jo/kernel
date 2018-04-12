@@ -68,7 +68,7 @@ static void *syscalls[21] =
     &print_hex,
     &print_dec
 };
-unsigned int num_syscalls = 18;
+unsigned int num_syscalls = 21;
 
 void initialise_syscalls()
 {

@@ -44,12 +44,11 @@ int kmain(struct multiboot *mboot_ptr, unsigned int initial_stack)
   /* Run Tests */
   test_kit();
 
+  /* User Mode */
   switch_to_user_mode();
 
-  /* User Program */
-  //main();
-  
-  /* Idle Task */
-  idle();
+  /* User Space */
+  main();
+
   return 0;
 }

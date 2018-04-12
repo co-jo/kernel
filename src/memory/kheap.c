@@ -64,7 +64,7 @@ int align_to_prev(unsigned int address)
 
 void kfree(void *p)
 {
-  _free(p, kheap);
+  _free(p);
 }
 
 static void expand(unsigned int new_size, heap_t *heap)
@@ -82,7 +82,7 @@ static void expand(unsigned int new_size, heap_t *heap)
   unsigned int i = old_size;
   while (i < new_size)
   {
-    get_page(heap->start_address+i, kernel_directory, flags(1, 1, 1));
+    get_page(heap->start_address + 0x1000, kernel_directory, flags(1, 1, 1));
     i += FRAME_SIZE;
   }
   heap->end_address = heap->start_address+new_size;
@@ -228,7 +228,6 @@ void *_alloc(unsigned int size, unsigned char page_align)
       footer_t *footer = (footer_t *) (old_end_address + header->size - sizeof(footer_t));
       footer->magic = HEAP_MAGIC;
       footer->header = header;
-      puts("??\n");
       insert_ordered_array((void*)header, &heap->index);
     }
     else
@@ -344,8 +343,9 @@ void *_alloc(unsigned int size, unsigned char page_align)
   return block_ptr;
 }
 
-void _free(void *p, heap_t *heap)
+void _free(void *p)
 {
+  heap_t *heap = kheap;
   // Exit gracefully for null pointers.
   if (p == 0)
     return;
