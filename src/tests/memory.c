@@ -4,22 +4,18 @@
 #include "kheap.h"
 #include "paging.h"
 
-void grow_heap()
-{
-  set_window_title("Running Grow Heap");
-  int i;
-  for (i = 0; i < 884; i++) {
-      kmalloc(FRAME_SIZE, 0, 0);
-  }
-}
-
-void shrink_heap()
-{
-}
-
 void memory_tests()
 {
-  grow_heap();
-  shrink_heap();
+    int *a = _alloc(4, 1);
+    *a = 3;
+    int pid = kfork();
+    if (pid != 0) {
+	*a = 4;
+	assert_eq(*a, 4, "assigning to alloc'd memory in parent");
+    } else {
+	*a = 2;
+	assert_eq(*a, 2, "assigning to alloc'd memory in child");
+    }
+    free(a);
 }
 

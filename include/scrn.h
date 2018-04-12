@@ -16,4 +16,8 @@ void key_handler(unsigned short scancode, char c);
 void header();
 void window_install();
 
+void print(const char *);
+void print_hex(unsigned int);
+void print_dec(unsigned int);
+
 #endif

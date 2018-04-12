@@ -39,9 +39,12 @@ DEFN_SYSCALL1(_close_pipe, 16, int);
 
 /* Output Functions */
 DEFN_SYSCALL2(printf, 17, const char*, int);
+DEFN_SYSCALL1(print, 18, const char *);
+DEFN_SYSCALL1(print_hex, 19, unsigned int);
+DEFN_SYSCALL1(print_dex, 20, unsigned int);
 
 
-static void *syscalls[18] =
+static void *syscalls[21] =
 {
     &pfork,
     &_alloc,
@@ -60,7 +63,10 @@ static void *syscalls[18] =
     &_write,
     &_read,
     &_close_pipe,
-    &printf
+    &printf,
+    &print,
+    &print_hex,
+    &print_dec
 };
 unsigned int num_syscalls = 18;
 

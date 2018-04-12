@@ -1,9 +1,9 @@
 #include "system.h"
 
 void  test_kit() {
-  //memory_tests();
-  sync_tests();
-
+  memory_tests();
+  // sync_tests();
+  ipc_tests();
   if (getpid() != 1) exit();
 }
 
