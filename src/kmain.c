@@ -50,5 +50,6 @@ int kmain(struct multiboot *mboot_ptr, unsigned int initial_stack)
   /* User Space */
   main();
 
+  clean();
   return 0;
 }

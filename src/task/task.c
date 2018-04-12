@@ -201,6 +201,8 @@ int pfork()
 }
 
 void _exit() {
+    if (nt == 1) return;
+
     task_t *dying = dequeue_task();
     if (dying) {
       dying->state = ZOMBIE;
@@ -496,4 +498,12 @@ void switch_to_user_mode()
       iret; \
       1: \
   ");
+}
+
+void clean()
+{
+    if (nt > 1) exit();
+    else {
+        while(1);
+    }
 }

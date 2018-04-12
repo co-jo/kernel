@@ -70,8 +70,3 @@ void shutdown()
     set_window_title(":)");
 }
 
-void idle()
-{
-    while(1);
-}
-

@@ -21,6 +21,5 @@ int main() {
     print(buffer);
   }
 
-  exit();
   return 0;
 }
